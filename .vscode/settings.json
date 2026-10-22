@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "update.h": "c",
+        "avctp_user.h": "c",
+        "btcontroller_config.h": "c"
+    }
+}
