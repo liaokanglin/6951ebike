@@ -134411,7 +134411,7 @@
 1604051956 c:\users\yyy\desktop\tu_and_me\carplay\carlife_aa_carlife_车机公版\sdk\include_lib\system\power_manage.h
 	"generic/typedef.h"
 
-1777455586 c:\users\yyy\desktop\tu_and_me\carplay\carlife_aa_carlife_车机公版\sdk\include_lib\system\syscfg_id.h
+1792986868 c:\users\yyy\desktop\tu_and_me\carplay\carlife_aa_carlife_车机公版\sdk\include_lib\system\syscfg_id.h
 	"typedef.h"
 
 1604051956 c:\users\yyy\desktop\tu_and_me\carplay\carlife_aa_carlife_车机公版\sdk\include_lib\system\bank_switch.h
@@ -135053,7 +135053,7 @@
 	"app_main.h"
 	"tone_player.h"
 
-1792053654 c:\users\yyy\desktop\tu_and_me\carplay\carlife_aa_carlife_车机公版\sdk\apps\soundbox\include\app_main.h
+1793170879 c:\users\yyy\desktop\tu_and_me\carplay\carlife_aa_carlife_车机公版\sdk\apps\soundbox\include\app_main.h
 
 1647847071 source:c:\users\yyy\desktop\tu_and_me\carplay\carlife_aa_carlife_车机公版\sdk\apps\common\audio\encode\encode_write_file.c
 	"encode_write.h"
@@ -139201,7 +139201,7 @@
 
 1788761536 source:c:\users\yyy\desktop\tu_and_me\carplay\carlife_aa_carlife_车机公版\sdk\apps\soundbox\car_app\carplay.c
 
-1792057280 source:c:\users\yyy\desktop\tu_and_me\carplay\carlife_aa_carlife_车机公版\sdk\apps\soundbox\car_app\hicar.c
+1793170376 source:c:\users\yyy\desktop\tu_and_me\carplay\carlife_aa_carlife_车机公版\sdk\apps\soundbox\car_app\hicar.c
 	"system/includes.h"
 	"app_config.h"
 	"bt_common.h"
@@ -139374,7 +139374,7 @@
 	"system/includes.h"
 	"update_loader_download.h"
 
-1789993766 source:c:\users\yyy\desktop\tu_and_me\carplay\carlife_aa_carlife_车机公版\sdk\apps\soundbox\my_app_main.c
+1793182577 source:c:\users\yyy\desktop\tu_and_me\carplay\carlife_aa_carlife_车机公版\sdk\apps\soundbox\my_app_main.c
 	"system/includes.h"
 	"app_config.h"
 	"btcontroller_config.h"
@@ -140253,7 +140253,7 @@
 	"key_event_deal.h"
 	"audio_recorder_mix.h"
 
-1792132059 source:c:\users\yyy\desktop\tu_and_me\carplay\carlife_aa_carlife_车机公版\sdk\apps\soundbox\task_manager\bt\bt.c
+1793084120 source:c:\users\yyy\desktop\tu_and_me\carplay\carlife_aa_carlife_车机公版\sdk\apps\soundbox\task_manager\bt\bt.c
 	"system/includes.h"
 	"media/includes.h"
 	"app_config.h"
@@ -140356,7 +140356,7 @@
 1604051956 c:\users\yyy\desktop\tu_and_me\carplay\carlife_aa_carlife_车机公版\sdk\include_lib\media\media_develop\media\pcm_decoder.h
 	"media/includes.h"
 
-1791944760 source:c:\users\yyy\desktop\tu_and_me\carplay\carlife_aa_carlife_车机公版\sdk\apps\soundbox\task_manager\bt\bt_event_fun.c
+1793084112 source:c:\users\yyy\desktop\tu_and_me\carplay\carlife_aa_carlife_车机公版\sdk\apps\soundbox\task_manager\bt\bt_event_fun.c
 	"system/includes.h"
 	"media/includes.h"
 	"app_config.h"
@@ -142291,7 +142291,7 @@
 1604051956 source:c:\users\yyy\desktop\tu_and_me\carplay\carlife_aa_carlife_车机公版\sdk\cpu\br23\ui_driver\ui_common.c
 	"includes.h"
 
-1792055953 source:c:\users\yyy\desktop\tu_and_me\carplay\carlife_aa_carlife_车机公版\sdk\apps\common\config\wifi_cp_aa_interface.c
+1793180048 source:c:\users\yyy\desktop\tu_and_me\carplay\carlife_aa_carlife_车机公版\sdk\apps\common\config\wifi_cp_aa_interface.c
 	"system/includes.h"
 	"app_config.h"
 	"btcontroller_config.h"
@@ -142301,7 +142301,7 @@
 	"debug.h"
 	"app_main.h"
 
-1792640630 source:c:\users\yyy\desktop\tu_and_me\carplay\carlife_aa_carlife_车机公版\sdk\apps\soundbox\gx_uart.c
+1793175110 source:c:\users\yyy\desktop\tu_and_me\carplay\carlife_aa_carlife_车机公版\sdk\apps\soundbox\gx_uart.c
 	"btstack/bluetooth.h"
 	"system/includes.h"
 	"asm/uart_dev.h"

@@ -19,7 +19,7 @@
 #ifndef BT_SERVICE_UUID_128
 #define BT_SERVICE_UUID_128 0x07
 #endif
-
+extern u8 hfp_ignore_income_connect;
 /* =========================== 外部函数声明 =========================== */
 // 注册 SDP RFCOMM 通道 UUID 到蓝牙协议栈
 extern int BTSrv_IF_regSdpRfcommUuid(u8 *pbUuid, int sdUuidLen);

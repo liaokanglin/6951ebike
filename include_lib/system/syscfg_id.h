@@ -70,22 +70,22 @@ u8 *syscfg_ptr_read(u16 item_id, u16 *len);
 //=================================================================================//
 //                             用户自定义配置项[1 ~ 49]                            //
 //=================================================================================//
-#define 	CFG_USER_DEFINE_BEGIN		1
-
-#define     MY_RECONNECT_MAC            2
-#define     MY_AUTO_RECONNECT_FLAG      3
-#define     GX_USER_HID_REPORT_MAP      4
-#define     CFG_HQ_HID_MAP_LEN          5
-#define     CFG_HQ_CPU_RESET_FLAG       6
-#define     CFG_HQ_RESET_FLAG_HID       7
+#define 	CFG_USER_DEFINE_BEGIN		     1
+     
+#define     MY_RECONNECT_MAC                 2
+#define     MY_AUTO_RECONNECT_FLAG           3
+#define     GX_USER_HID_REPORT_MAP           4
+#define     CFG_HQ_HID_MAP_LEN               5
+#define     CFG_HQ_CPU_RESET_FLAG            6
+#define     CFG_HQ_RESET_FLAG_HID            7
 #define     CFG_HQ_RESET_FLAG_BLE_NAME       8
-#define     CFG_HC_BT_OPEN_STATSUS      9
-#define     CFG_HC_PAIR_PIN_CODE        10
+#define     CFG_HC_BT_OPEN_STATSUS           9
+#define     CFG_HC_PAIR_PIN_CODE             10
 // #define     CFG_MY_ADDR_0       4
 // #define     CFG_MY_ADDR_1       5
 // #define     CFG_MY_ADDR_2       6
 
-#define 	CFG_USER_DEFINE_END			49
+#define 	CFG_USER_DEFINE_END			     49
 
 //=================================================================================//
 //                             只存VM配置项[50 ~ 99]                         	   //

@@ -391,6 +391,7 @@ void bt_function_select_init()
 #else
     __bt_set_update_battery_time(0);
 #endif
+    // __set_disable_sco_flag(1);
 
     ////回连搜索时间长度设置,可使用该函数注册使用，ms单位,u16
     // __set_page_timeout_value(4000);
@@ -780,21 +781,12 @@ static int bt_connction_status_event_handler(struct bt_event *bt)
         break;
     case BT_STATUS_CONN_A2DP_CH:
         log_info("BT_STATUS_CONN_A2DP_CH\n");
-        // printf("??????????????\r\n");
+        printf("??????????????\r\n");
         u8 phone_addr_temp[6] = {0};
         memcpy(phone_addr_temp, bt->args, 6);
         
-        // printf("[bt->value %d] -- [reconnect_flag %d]", bt->value, reconnect_flag);
-        // if(bt->value && reconnect_flag == 1)
-        // {
-        //     printf("my reconnect flag\r\n");
-        //     reconnect_flag = 0;
-        //     user_send_connect_diy_profile(phone_addr_temp);
-        // }
         void carlife_conn_start(u8 *addr);
         carlife_conn_start(phone_addr_temp);
-        // sys_timer_add(phone_addr_temp, user_send_connect_diy_profile, 1000);
-        // user_send_connect_diy_profile(phone_addr_temp);
 
         bt_status_conn_a2dp_ch(bt);
     /* break; */
@@ -822,13 +814,12 @@ static int bt_connction_status_event_handler(struct bt_event *bt)
         printf("[BT] Target Phone MAC: %02X:%02X:%02X:%02X:%02X:%02X\r\n",
                phone_addr_temp1[0], phone_addr_temp1[1], phone_addr_temp1[2],
                phone_addr_temp1[3], phone_addr_temp1[4], phone_addr_temp1[5]);
-        // user_send_cmd_prepare(USER_CTRL_HID_CONN, 0, NULL);
-        // user_send_cmd_prepare(USER_CTRL_HFP_DISCONNECT, 0, NULL);
-        
+
         
         printf("[bt->value %d] -- [reconnect_flag %d]", bt->value, reconnect_flag);
         if(1 == gx_get_conn_remote_type())//1 安卓
         {
+            printf("gx_get_conn_remote_type 11111\r\n");
             user_send_cmd_prepare(USER_CTRL_HID_CONN, 0, NULL);
         }
         if(bt->value && reconnect_flag == 1)
@@ -836,14 +827,10 @@ static int bt_connction_status_event_handler(struct bt_event *bt)
             printf("my reconnect flag\r\n");
             reconnect_flag = 0;
             stu_rfcomm_reconn_handle(phone_addr_temp1);
-
-            // user_send_cmd_prepare(USER_CTRL_HID_CONN, 0, NULL);
-            // sys_timeout_add(phone_addr_temp1, user_send_connect_diy_profile, 200);
         }
 #endif
         gx_tmp_data[0] = 1;
         my_cmd_data_send(MY_BT_CONN_STATUS, gx_tmp_data, 1);
-
         printf("PHONE type : %d", gx_get_conn_remote_type());
 
         if(app_get_curr_task() != APP_BT_TASK)

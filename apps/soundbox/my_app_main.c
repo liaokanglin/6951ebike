@@ -51,17 +51,18 @@ extern void uart_dev_test_main();
 extern void gx_hc_app_init();
 
 // Hc_RFcomm hc_rfcomm;
-
+extern u8 hfp_ignore_income_connect;
 void gx_music_playing_status_for_test()
 {
     // 拿取手机状态
     printf("playing status .... %d", get_bt_connect_status());
+    printf("hfp_ignore_income_connect .... %d", hfp_ignore_income_connect);
 }
 
 void my_app_init()
 {
     // for test
-    // sys_timer_add(NULL, mem_stats, 1000);
+    // sys_timer_add(NULL, gx_music_playing_status_for_test, 1000);
 
     gx_hc_app_init();
     uart_dev_test_main();

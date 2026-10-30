@@ -828,7 +828,8 @@ void my_remote_clean()
     carlife_conn_end();
     extern void hicar_reconnect_stop(void);
     hicar_reconnect_stop();
-    
+    // extern u8 hfp_ignore_income_connect;
+    // hfp_ignore_income_connect = 0;
     // reconnect_flag = 0;
     my_connect_phone_type = 0;
     memset(phone_name, 0, sizeof(phone_name));
@@ -2673,8 +2674,10 @@ void bt_status_phone_menufactuer(struct bt_event *bt)
     app_var.remote_dev_company = bt->value;
     if (hid_conn_depend_on_dev_company) {
         if (bt->value) {
+            printf("hid_conn_depend_on_dev_company:%d\n", bt->value);
             //user_send_cmd_prepare(USER_CTRL_HID_CONN, 0, NULL);
         } else {
+            printf("hid_disconn_depend_on_dev_company:%d\n", bt->value);
             user_send_cmd_prepare(USER_CTRL_HID_DISCONNECT, 0, NULL);
         }
     }

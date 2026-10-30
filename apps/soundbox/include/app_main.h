@@ -195,6 +195,7 @@ typedef enum {
     GX_GET_BT_CONN_PINCODE,        // [0xF8] 获取蓝牙连接配对密码 (PIN Code)
     GX_SEND_BT_CONN_PINCODE,       // [0xF9] 发送/上报蓝牙连接配对密码 (PIN Code)
     GX_SET_HICAR_RECONNECT,        // [0xFA] 设置hicar回连 
+    GX_SET_BT_HFP_ENABLE = 0xFB,   // [0xFB] HFP开关：0关闭，1开启
 } Hccast_cmd;
 
 typedef struct __hc_bt_open_statsus {
