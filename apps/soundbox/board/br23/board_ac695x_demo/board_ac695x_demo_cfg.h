@@ -812,39 +812,39 @@ DAC硬件上的连接方式,可选的配置：
 //*********************************************************************************//
 //                                  fm 配置                                     //
 //*********************************************************************************//
-#define TCFG_FM_ENABLE							TCFG_APP_FM_EN // fm 使能
-#define TCFG_FM_INSIDE_ENABLE					ENABLE
-#define TCFG_FM_RDA5807_ENABLE					DISABLE //需要使能软件IIC模块
-#define TCFG_FM_BK1080_ENABLE					DISABLE //需要使能软件IIC模块
-#define TCFG_FM_QN8035_ENABLE					DISABLE //需要使能软件IIC模块
+#define TCFG_FM_ENABLE							TCFG_APP_FM_EN // FM 收音功能总开关，跟随 TCFG_APP_FM_EN
+#define TCFG_FM_INSIDE_ENABLE					ENABLE // 启用芯片内置 FM 接收模块
+#define TCFG_FM_RDA5807_ENABLE					DISABLE // RDA5807 外置 FM 接收驱动，启用时需要软件 IIC
+#define TCFG_FM_BK1080_ENABLE					DISABLE // BK1080 外置 FM 接收驱动，启用时需要软件 IIC
+#define TCFG_FM_QN8035_ENABLE					DISABLE // QN8035 外置 FM 接收驱动，启用时需要软件 IIC
 
-#define TCFG_FMIN_LADC_IDX				1				// linein使用的ladc通道，对应ladc_list
-#define TCFG_FMIN_LR_CH					AUDIO_LIN1_LR
-#define TCFG_FM_INPUT_WAY               LINEIN_INPUT_WAY_ANALOG
+#define TCFG_FMIN_LADC_IDX				1 // FM 音频输入使用的 LADC 通道索引，对应 ladc_list
+#define TCFG_FMIN_LR_CH					AUDIO_LIN1_LR // 使用 LINEIN1 的左右声道
+#define TCFG_FM_INPUT_WAY               LINEIN_INPUT_WAY_ANALOG // 使用模拟 LINEIN 输入路径
 
 #if (TCFG_FM_INSIDE_ENABLE && TCFG_FM_ENABLE)
 #if (((TCFG_USER_TWS_ENABLE) || (RECORDER_MIX_EN) || (TCFG_MIC_EFFECT_ENABLE)))
-#define TCFG_CODE_RUN_RAM_FM_MODE 					DISABLE_THIS_MOUDLE  	//FM模式 代码跑ram
+#define TCFG_CODE_RUN_RAM_FM_MODE 					DISABLE_THIS_MOUDLE // 当前不启用 FM 模式代码在 RAM 中运行
 #else
-#define TCFG_CODE_RUN_RAM_FM_MODE 					DISABLE_THIS_MOUDLE  	//FM模式 代码跑ram
+#define TCFG_CODE_RUN_RAM_FM_MODE 					DISABLE_THIS_MOUDLE // 当前不启用 FM 模式代码在 RAM 中运行
 #endif
 #else
-#define TCFG_CODE_RUN_RAM_FM_MODE 					DISABLE_THIS_MOUDLE 	//FM模式 代码跑ram
+#define TCFG_CODE_RUN_RAM_FM_MODE 					DISABLE_THIS_MOUDLE // 当前不启用 FM 模式代码在 RAM 中运行
 #endif /*(TCFG_FM_INSIDE_ENABLE && TCFG_FM_ENABLE)*/
 
 #if (TCFG_CODE_RUN_RAM_FM_MODE && TCFG_UI_ENABLE)
 #undef TCFG_LED7_RUN_RAM
-#define TCFG_LED7_RUN_RAM 					ENABLE_THIS_MOUDLE 	//led7跑ram 不屏蔽中断(需要占据2k附近ram)
+#define TCFG_LED7_RUN_RAM 					ENABLE_THIS_MOUDLE // 让 LED7 代码在 RAM 中运行，约占用 2 KB RAM
 #endif /*(TCFG_CODE_RUN_RAM_FM_MODE && TCFG_UI_ENABLE)*/
 
 //*********************************************************************************//
 //                                  fm emitter 配置                                     //
 //*********************************************************************************//
-#define TCFG_APP_FM_EMITTER_EN                  1//DISABLE
-#define TCFG_FM_EMITTER_INSIDE_ENABLE			1//DISABLE
-#define TCFG_FM_EMITTER_AC3433_ENABLE			DISABLE
-#define TCFG_FM_EMITTER_QN8007_ENABLE			DISABLE
-#define TCFG_FM_EMITTER_QN8027_ENABLE			DISABLE
+#define TCFG_APP_FM_EMITTER_EN                  1 // FM 发射功能总开关，0 为关闭
+#define TCFG_FM_EMITTER_INSIDE_ENABLE			1 // 内置 FM 发射驱动开关，0 为关闭
+#define TCFG_FM_EMITTER_AC3433_ENABLE			DISABLE // AC3433 外置 FM 发射驱动开关
+#define TCFG_FM_EMITTER_QN8007_ENABLE			DISABLE // QN8007 外置 FM 发射驱动开关
+#define TCFG_FM_EMITTER_QN8027_ENABLE			DISABLE // QN8027 外置 FM 发射驱动开关
 
 //*********************************************************************************//
 //                                  rtc 配置                                     //

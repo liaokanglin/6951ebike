@@ -230,10 +230,12 @@ obj/Release/apps/common/config/wifi_cp_aa_interface.o
 -r=obj/Release/apps/common/config/wifi_cp_aa_interface.o,RFCOMM_IF_sendData_New,pl
 -r=obj/Release/apps/common/config/wifi_cp_aa_interface.o,gx_get_conn_remote_type,pl
 -r=obj/Release/apps/common/config/wifi_cp_aa_interface.o,mutil_handle_data_deal,pl
+-r=obj/Release/apps/common/config/wifi_cp_aa_interface.o,stu_rfcomm_reconn_stop,l
 -r=obj/Release/apps/common/config/wifi_cp_aa_interface.o,my_cmd_data_send,l
 -r=obj/Release/apps/common/config/wifi_cp_aa_interface.o,hicar_reconnect_connected,l
 -r=obj/Release/apps/common/config/wifi_cp_aa_interface.o,carlife_conn_end,l
 -r=obj/Release/apps/common/config/wifi_cp_aa_interface.o,syscfg_write,l
+-r=obj/Release/apps/common/config/wifi_cp_aa_interface.o,carlife_conn_start,l
 -r=obj/Release/apps/common/config/wifi_cp_aa_interface.o,user_add_data_2_eir,pl
 -r=obj/Release/apps/common/config/wifi_cp_aa_interface.o,little_endian_store_16,l
 -r=obj/Release/apps/common/config/wifi_cp_aa_interface.o,uuid_bufffer_clean,pl
@@ -284,6 +286,7 @@ obj/Release/apps/common/config/wifi_cp_aa_interface.o
 -r=obj/Release/apps/common/config/wifi_cp_aa_interface.o,uuid_answer_buf,pl
 -r=obj/Release/apps/common/config/wifi_cp_aa_interface.o,reconnect_flag,l
 -r=obj/Release/apps/common/config/wifi_cp_aa_interface.o,reconnect_mgr,l
+-r=obj/Release/apps/common/config/wifi_cp_aa_interface.o,phone_addr_temp1,l
 -r=obj/Release/apps/common/config/wifi_cp_aa_interface.o,UUID16_buf_len,pl
 -r=obj/Release/apps/common/config/wifi_cp_aa_interface.o,UUID32_buf_len,pl
 -r=obj/Release/apps/common/config/wifi_cp_aa_interface.o,UUID128_buf_len,pl
@@ -2457,7 +2460,6 @@ obj/Release/apps/soundbox/gx_uart.o
 -r=obj/Release/apps/soundbox/gx_uart.o,get_call_status,l
 -r=obj/Release/apps/soundbox/gx_uart.o,gx_get_conn_remote_type,l
 -r=obj/Release/apps/soundbox/gx_uart.o,get_bt_connect_status,l
--r=obj/Release/apps/soundbox/gx_uart.o,get_curr_channel_state,l
 -r=obj/Release/apps/soundbox/gx_uart.o,gx_set_pin_code,l
 -r=obj/Release/apps/soundbox/gx_uart.o,hicar_reconnect_start,l
 -r=obj/Release/apps/soundbox/gx_uart.o,bt_get_pin_code,l
@@ -3474,11 +3476,13 @@ obj/Release/apps/soundbox/task_manager/bt/bt.o
 -r=obj/Release/apps/soundbox/task_manager/bt/bt.o,my_cmd_data_send,l
 -r=obj/Release/apps/soundbox/task_manager/bt/bt.o,timer_test_hfp,pl
 -r=obj/Release/apps/soundbox/task_manager/bt/bt.o,get_curr_channel_state,l
--r=obj/Release/apps/soundbox/task_manager/bt/bt.o,stu_rfcomm_reconn_handle,pl
--r=obj/Release/apps/soundbox/task_manager/bt/bt.o,sys_timeout_del,l
--r=obj/Release/apps/soundbox/task_manager/bt/bt.o,sys_timeout_add,l
--r=obj/Release/apps/soundbox/task_manager/bt/bt.o,user_send_connect_diy_profile,pl
 -r=obj/Release/apps/soundbox/task_manager/bt/bt.o,stu_rfcomm_reconn_stop,pl
+-r=obj/Release/apps/soundbox/task_manager/bt/bt.o,sys_timer_del,l
+-r=obj/Release/apps/soundbox/task_manager/bt/bt.o,sys_timeout_del,l
+-r=obj/Release/apps/soundbox/task_manager/bt/bt.o,stu_rfcomm_reconn_handle,pl
+-r=obj/Release/apps/soundbox/task_manager/bt/bt.o,sys_timeout_add,l
+-r=obj/Release/apps/soundbox/task_manager/bt/bt.o,sys_timer_add,l
+-r=obj/Release/apps/soundbox/task_manager/bt/bt.o,user_send_connect_diy_profile,pl
 -r=obj/Release/apps/soundbox/task_manager/bt/bt.o,gx_get_conn_remote_type,l
 -r=obj/Release/apps/soundbox/task_manager/bt/bt.o,RFCOMM_IF_connect,l
 -r=obj/Release/apps/soundbox/task_manager/bt/bt.o,bt_background_event_handler_filter,pl
@@ -3643,6 +3647,7 @@ obj/Release/apps/soundbox/task_manager/bt/bt_event_fun.o
 -r=obj/Release/apps/soundbox/task_manager/bt/bt_event_fun.o,hicar_reconnect_stop,l
 -r=obj/Release/apps/soundbox/task_manager/bt/bt_event_fun.o,bt_read_remote_name,pl
 -r=obj/Release/apps/soundbox/task_manager/bt/bt_event_fun.o,printf_buf,l
+-r=obj/Release/apps/soundbox/task_manager/bt/bt_event_fun.o,my_cmd_data_send,l
 -r=obj/Release/apps/soundbox/task_manager/bt/bt_event_fun.o,syscfg_write,l
 -r=obj/Release/apps/soundbox/task_manager/bt/bt_event_fun.o,gx_make_lyric_pkg,pl
 -r=obj/Release/apps/soundbox/task_manager/bt/bt_event_fun.o,parse_time_string_to_seconds,pl
@@ -3652,7 +3657,6 @@ obj/Release/apps/soundbox/task_manager/bt/bt_event_fun.o
 -r=obj/Release/apps/soundbox/task_manager/bt/bt_event_fun.o,sys_timer_add,l
 -r=obj/Release/apps/soundbox/task_manager/bt/bt_event_fun.o,music_time_init,pl
 -r=obj/Release/apps/soundbox/task_manager/bt/bt_event_fun.o,handle_music_time_callback,pl
--r=obj/Release/apps/soundbox/task_manager/bt/bt_event_fun.o,my_cmd_data_send,l
 -r=obj/Release/apps/soundbox/task_manager/bt/bt_event_fun.o,user_get_bt_music_info,pl
 -r=obj/Release/apps/soundbox/task_manager/bt/bt_event_fun.o,strncmp,l
 -r=obj/Release/apps/soundbox/task_manager/bt/bt_event_fun.o,strncpy,l

@@ -66,7 +66,7 @@
 #define __this 	(&app_bt_hdl)
 
 static int bt_switch_back_timer = 0;
-
+extern void my_cmd_data_send(u8 cmd, u8 *data, u16 data_len);
 /*************************************************************
     此文件函数主要是蓝牙模式各种状态处理
 
@@ -531,43 +531,46 @@ extern HC_BT_OPEN hc_open_bt;
    			 1拖2的时候会限制开启
 */
 /*----------------------------------------------------------------------------*/
-void bt_wait_phone_connect_control(u8 enable)
+void bt_wait_phone_connect_control(u8 enable) // 蓝牙等待手机连接控制函数，参数 enable 用于控制开启或关闭
 {
 #if TCFG_USER_TWS_ENABLE
-    return;
+    return; // 如果开启了TWS（组队）功能，则直接返回，不执行后续逻辑
 #endif
 
+    // 如果是使能状态，且系统正处于关机流程中（goto_poweroff_flag置位）并且正在退出（exiting置位），则直接返回
     if (enable && app_var.goto_poweroff_flag && (__this->exiting)) {
         return;
     }
 
-    if (enable) {
+    if (enable) { // 如果传入的 enable 为真，表示需要开启等待连接状态
+        // 打印调试日志，输出当前的1拖2连接状态和当前连接的总设备数
         log_debug("is_1t2_connection:%d \t total_conn_dev:%d\n", is_1t2_connection(), get_total_connect_dev());
-        if (is_1t2_connection()) {
-            /*达到最大连接数，可发现(0)可连接(0)*/
-            user_send_cmd_prepare(USER_CTRL_WRITE_SCAN_DISABLE, 0, NULL);
-            user_send_cmd_prepare(USER_CTRL_WRITE_CONN_DISABLE, 0, NULL);
-        } else {
-            if (get_total_connect_dev() == 1) {
-                /*支持连接2台，只连接一台的情况下，可发现(0)可连接(1)*/
-                user_send_cmd_prepare(USER_CTRL_WRITE_SCAN_DISABLE, 0, NULL);
-                user_send_cmd_prepare(USER_CTRL_WRITE_CONN_ENABLE, 0, NULL);
-            } else {
+        
+        if (is_1t2_connection()) { // 如果当前已经是1拖2连接（即达到了最大连接数）
+            /* 达到最大连接数，设置不可发现(0)且不可连接(0) */
+            user_send_cmd_prepare(USER_CTRL_WRITE_SCAN_DISABLE, 0, NULL); // 关闭扫描（不可发现）
+            user_send_cmd_prepare(USER_CTRL_WRITE_CONN_DISABLE, 0, NULL); // 关闭连接（不可连接）
+        } else { // 如果未达到1拖2最大连接数
+            if (get_total_connect_dev() == 1) { // 如果当前只连接了1台设备
+                /* 支持连接2台，只连接一台的情况下，设置不可发现(0)但可连接(1)，允许第二台设备连进来 */
+                user_send_cmd_prepare(USER_CTRL_WRITE_SCAN_DISABLE, 0, NULL); // 关闭扫描（不可被新设备搜索发现）
+                user_send_cmd_prepare(USER_CTRL_WRITE_CONN_ENABLE, 0, NULL);  // 开启连接（允许已配对设备发起连接）
+            } else { // 如果当前没有连接任何设备（连接数为0）
                 
-                if(!hc_open_bt.bt_open)
+                if(!hc_open_bt.bt_open) // 检查底层蓝牙开关状态结构体，看蓝牙是否处于关闭状态
                 {
-                    printf("bt is close \r\n");
-                    return;
+                    printf("bt is close \r\n"); // 打印提示：蓝牙已关闭
+                    return; // 蓝牙未开启则直接返回
                 }
-                /*可发现(1)可连接(1)*/
-                BT_STATE_SET_PAGE_SCAN_ENABLE();
-                user_send_cmd_prepare(USER_CTRL_WRITE_SCAN_ENABLE, 0, NULL);
-                user_send_cmd_prepare(USER_CTRL_WRITE_CONN_ENABLE, 0, NULL);
+                /* 设置可发现(1)且可连接(1)，允许手机搜索并配对连接 */
+                BT_STATE_SET_PAGE_SCAN_ENABLE(); // 设置蓝牙状态为允许页扫描（Page Scan）
+                user_send_cmd_prepare(USER_CTRL_WRITE_SCAN_ENABLE, 0, NULL);  // 开启扫描（可被发现）
+                user_send_cmd_prepare(USER_CTRL_WRITE_CONN_ENABLE, 0, NULL);   // 开启连接（可被连接）
             }
         }
-    } else {
-        user_send_cmd_prepare(USER_CTRL_WRITE_SCAN_DISABLE, 0, NULL);
-        user_send_cmd_prepare(USER_CTRL_WRITE_CONN_DISABLE, 0, NULL);
+    } else { // 如果传入的 enable 为假，表示需要关闭等待连接状态
+        user_send_cmd_prepare(USER_CTRL_WRITE_SCAN_DISABLE, 0, NULL); // 关闭扫描（不可发现）
+        user_send_cmd_prepare(USER_CTRL_WRITE_CONN_DISABLE, 0, NULL); // 关闭连接（不可连接）
     }
 }
 
@@ -857,6 +860,8 @@ void bt_read_remote_name(u8 status, u8 *addr, u8 *name)
 
     log_debug_hexdump(addr, 6);
 	memcpy(phone_addr, addr, 6);
+    my_cmd_data_send(MY_SEND_PHONE_MAC, addr, 6);
+    my_cmd_err_send(MY_CMD_OK, 0, 0);
 	syscfg_write(MY_RECONNECT_MAC,phone_addr,6);
 
 #if TCFG_USER_EMITTER_ENABLE
@@ -1154,7 +1159,7 @@ void handle_music_time_callback(u8 min, u8 sec) {
             memcpy(time_buf, &music_time.total_s, 2);
             memcpy(time_buf + 2, &music_time.current_s, 2);
 
-            void my_cmd_data_send(u8 cmd, u8 *data, u16 data_len);
+            
             my_cmd_data_send(GX_SEND_BT_MUSIC_PLAYING_TIME, time_buf, 4);
             // gx_uart_send_data(pkg_data, pkg_len);
             my_cmd_err_send(MY_CMD_OK, 0, 0);
@@ -2991,7 +2996,7 @@ void bt_hci_event_page_timeout(struct bt_event *bt)
 }
 
 /*----------------------------------------------------------------------------*/
-/**@brief  蓝牙event   链接超时
+/**@brief   蓝牙event  链接超时
    @param
    @return
    @note    链接超时，设备拿远导致的超时等
@@ -2999,28 +3004,28 @@ void bt_hci_event_page_timeout(struct bt_event *bt)
 /*----------------------------------------------------------------------------*/
 void bt_hci_event_connection_timeout(struct bt_event *bt)//蓝牙连接超时事件处理
 {
-    if (!get_remote_test_flag() && !get_esco_busy_flag()) {//非测试模式且ESCO未占用
-        bt_user_priv_var.auto_connection_counter = (TIMEOUT_CONN_TIME * 1000);//设置自动回连计数器
-        memcpy(bt_user_priv_var.auto_connection_addr, bt->args, 6);//保存超时设备的蓝牙MAC地址
+    if (!get_remote_test_flag() && !get_esco_busy_flag()) {//如果当前不是测试模式，并且ESCO（语音通话链路）未被占用
+        bt_user_priv_var.auto_connection_counter = (TIMEOUT_CONN_TIME * 1000);//设置自动回连计数器（将超时时间转换为毫秒）
+        memcpy(bt_user_priv_var.auto_connection_addr, bt->args, 6);//保存当前发生连接超时的设备的蓝牙MAC地址（6字节）
 
 #if TCFG_USER_TWS_ENABLE
-        bt_tws_phone_connect_timeout();//TWS模式下处理手机连接超时
+        bt_tws_phone_connect_timeout();//如果开启了TWS（组队）功能，则执行TWS模式下的手机连接超时处理
 #else
 
 #if ((CONFIG_BT_MODE == BT_BQB)||(CONFIG_BT_MODE == BT_PER))
-        bt_wait_phone_connect_control(1);//测试模式下进入等待手机连接状态
+        bt_wait_phone_connect_control(1);//如果是BQB认证或PER测试模式，则进入等待手机连接状态
 #else
-        user_send_cmd_prepare(USER_CTRL_PAGE_CANCEL, 0, NULL);//取消当前Page连接操作
-        bt_wait_connect_and_phone_connect_switch(0);//切换蓝牙等待连接与主动连接状态
+        user_send_cmd_prepare(USER_CTRL_PAGE_CANCEL, 0, NULL);//取消当前正在进行的Page（寻呼）连接操作
+        bt_wait_connect_and_phone_connect_switch(0);//切换蓝牙的等待连接与主动连接状态
 #endif
 
-        //user_send_cmd_prepare(USER_CTRL_START_CONNEC_VIA_ADDR, 6, bt->args);//主动连接指定MAC地址（当前已注释）
+        //user_send_cmd_prepare(USER_CTRL_START_CONNEC_VIA_ADDR, 6, bt->args);//通过保存的MAC地址主动发起连接（当前代码已被注释）
 #endif
-    } else {
+    } else { // 如果处于测试模式，或者ESCO正处于占用状态
 #if TCFG_USER_TWS_ENABLE
-        bt_tws_phone_disconnected();//TWS模式下执行手机断开处理
+        bt_tws_phone_disconnected();//TWS模式下执行手机断开连接的相关处理
 #else
-        bt_wait_phone_connect_control(1);//进入等待手机连接状态
+        bt_wait_phone_connect_control(1);//普通模式下进入等待手机连接的状态
 #endif
     }
 }

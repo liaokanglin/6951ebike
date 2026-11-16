@@ -24,6 +24,7 @@ extern u8 gx_call_phonenumber[20];
 extern u8 phone_callback_flag;
 extern u8 BT_CONNCTION_FLAG;
 extern u8 hfp_ignore_income_connect;
+extern void stu_rfcomm_reconn_stop(void);
 u8 gx_sco_conn_status = 0;
 
 u8 gx_get_sco_conn_status()
@@ -769,7 +770,6 @@ int gx_uart_event_handler(struct notify_uart *nfuart)
         break;
 
     case MY_TURN_OFF_BT:
-
         printf("close bt .......\r\n");
 
         user_send_cmd_prepare(USER_CTRL_DISCONNECTION_HCI, 0, NULL); // 断开当前所有蓝牙连接
@@ -1382,11 +1382,12 @@ int gx_uart_event_handler(struct notify_uart *nfuart)
             user_send_cmd_prepare(USER_CTRL_HFP_DISCONNECT, 0, NULL);
             hfp_ignore_income_connect = 1;
         } else {
-            if (!(get_curr_channel_state() & HFP_CH)) {
+            // if (!(get_curr_channel_state() & HFP_CH)) {
                 printf("Enabling HFP...\r\n");
                 user_send_cmd_prepare(USER_CTRL_HFP_CMD_BEGIN, 0, NULL);
                 hfp_ignore_income_connect = 0;
-            }
+                bt_hci_event_connection_timeout(NULL);
+            // }
         }
         my_cmd_err_send(MY_CMD_OK, 0, 0);
         break;
@@ -1507,9 +1508,11 @@ int gx_uart_event_handler(struct notify_uart *nfuart)
         if(!cmd_data_tmp[0])
         {
             fm_emitter_manage_stop();
+            printf("FM tx stop ...\r\n");
         }else
         {
             fm_emitter_manage_start();
+            printf("FM tx start ...\r\n");
         }
         my_cmd_err_send(MY_CMD_OK, 0, 0);
         break;

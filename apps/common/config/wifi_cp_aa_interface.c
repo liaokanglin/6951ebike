@@ -351,6 +351,10 @@ u8 gx_get_conn_remote_type()
 }
 
 extern void carlife_conn_end();
+extern void carlife_conn_start(u8 *addr);
+extern u8 phone_addr_temp1[6];
+extern u8 BT_CONNCTION_FLAG;
+extern void stu_rfcomm_reconn_stop(void);
 extern u8 reconnect_flag;
 static u8 hc_packet[1024];
 u8 uuid_answer_buf[1+16] = {0};
@@ -363,6 +367,8 @@ int mutil_handle_data_deal(u8 local_id, u8 packet_type, u16 channel, u8 *packet,
     printf("my_connect_phone_type %d\r\n", my_connect_phone_type);
     switch (packet_type) {
     case 1:
+        /* RFCOMM 已连接，停止周期回连及其截止定时器。 */
+        stu_rfcomm_reconn_stop();
 
         printf("\n");
         printf("nutil connect#########\n");
@@ -442,9 +448,16 @@ int mutil_handle_data_deal(u8 local_id, u8 packet_type, u16 channel, u8 *packet,
         break;
     case 2: 
         rfcomm_connect_flag = 0;
+        /* SPP 断开但 BR 仍连接时，使用保存的手机地址启动 CarLife 重试。 */
+        if (reconnect_mgr.type == CONNECTIONMODE_Carlife) {
+            printf("[CarLife] SPP disconnected, reconnect MAC: %02X:%02X:%02X:%02X:%02X:%02X\r\n",
+                   phone_addr_temp1[0], phone_addr_temp1[1],
+                   phone_addr_temp1[2], phone_addr_temp1[3],
+                   phone_addr_temp1[4], phone_addr_temp1[5]);
+            carlife_conn_start(phone_addr_temp1);
+        }
         printf("nutil disconnect#########\n");
         gx_iap2_id = 0;
-
         my_cmd_data_send(0xcf, 0, 0);
         break;
     case 7:
@@ -452,7 +465,7 @@ int mutil_handle_data_deal(u8 local_id, u8 packet_type, u16 channel, u8 *packet,
 
         printf("GET PKG >>>>>>>>>>>>#########\n");
 
-        printf("CONNECTIONMODE_Hicar=%d\n",reconnect_mgr.type);
+        printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>reconnect_mgr.type=%d\n",reconnect_mgr.type);
         if(reconnect_mgr.type == CONNECTIONMODE_Hicar){
 /* HiCar 透传数据前加本地通道号，供主控区分 FE35 和 FE36。 */
             hc_packet[0] = local_id;  
@@ -678,7 +691,7 @@ void carplay_bluetooth_init()
         BTSrv_IF_Srv_setLocalUuid(BT_SERVICE_UUID_128, 16, (u8 *)Android_auto_uuid_128);
         break;
     case CONNECTIONMODE_Carlife:
-
+        printf("carlife mode init\n");
         BTSrv_IF_regSdpRfcommUuid((u8 *)carlife_service_uuid_128, 16);
         BTSrv_IF_Srv_setLocalUuid(BT_SERVICE_UUID_128, 16, (u8 *)carlife_service_uuid_128);
         break;

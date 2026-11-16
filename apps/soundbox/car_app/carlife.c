@@ -48,7 +48,7 @@ void carlife_conn_start(u8 *addr)
         return;
 
     memcpy(carlife_addr, addr, 6);
-    carlife_conn_timer = sys_timer_add(NULL, conn_carlife_handle, 1000);
+    carlife_conn_timer = sys_timer_add(NULL, conn_carlife_handle, 1500);
 }
 
 void carlife_conn_end()

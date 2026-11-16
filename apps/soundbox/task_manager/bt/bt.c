@@ -621,24 +621,47 @@ void timer_test_hfp(){
     printf("get_curr_channel_state: %d, HFP_CH: %d\r\n", get_curr_channel_state(), HFP_CH);
 }
 u16 stu_rfcomm_reconn_timer = 0;
-void stu_rfcomm_reconn_handle(u8* addr)
+static u16 stu_rfcomm_deadline_timer;
+static u8 stu_rfcomm_reconn_addr[6];
+
+/* 同时清理周期重试和一分钟截止定时器。 */
+void stu_rfcomm_reconn_stop(void)
 {
-    if(stu_rfcomm_reconn_timer)
-    {
-        sys_timeout_del(stu_rfcomm_reconn_timer);
+    if (stu_rfcomm_reconn_timer) {
+        sys_timer_del(stu_rfcomm_reconn_timer);
         stu_rfcomm_reconn_timer = 0;
     }
-    stu_rfcomm_reconn_timer = sys_timeout_add(addr, user_send_connect_diy_profile, 200);
+    if (stu_rfcomm_deadline_timer) {
+        sys_timeout_del(stu_rfcomm_deadline_timer);
+        stu_rfcomm_deadline_timer = 0;
+    }
 }
 
-void stu_rfcomm_reconn_stop()
+static void stu_rfcomm_reconn_expired(void *priv)
 {
-    if(stu_rfcomm_reconn_timer)
-    {
-        sys_timeout_del(stu_rfcomm_reconn_timer);
-        stu_rfcomm_reconn_timer = 0;
+    stu_rfcomm_deadline_timer = 0;
+    stu_rfcomm_reconn_stop();
+    printf("[RFCOMM] Reconnect stopped after 60 seconds.\n");
+}
+
+void stu_rfcomm_reconn_handle(u8 *addr)
+{
+    if (!addr) {
+        return;
     }
-        stu_rfcomm_reconn_timer = 0;
+    stu_rfcomm_reconn_stop();
+    /* 保存地址，避免周期回调引用调用方的临时内存。 */
+    memcpy(stu_rfcomm_reconn_addr, addr, sizeof(stu_rfcomm_reconn_addr));
+    stu_rfcomm_deadline_timer = sys_timeout_add(NULL, stu_rfcomm_reconn_expired, 60000);
+    if (!stu_rfcomm_deadline_timer) {
+        printf("[RFCOMM] Failed to create reconnect deadline.\n");
+        return;
+    }
+    stu_rfcomm_reconn_timer = sys_timer_add(stu_rfcomm_reconn_addr,
+                                           user_send_connect_diy_profile, 1000);
+    if (!stu_rfcomm_reconn_timer) {
+        stu_rfcomm_reconn_stop();
+    }
 }
 /*----------------------------------------------------------------------------*/
 /**@brief    蓝牙模式协议栈对应状态处理函数
@@ -935,6 +958,7 @@ static int bt_hci_event_handler(struct bt_event *bt)
         bt_hci_event_disconnect(bt) ;
         break;
     case HCI_EVENT_DISCONNECTION_COMPLETE :
+        stu_rfcomm_reconn_stop();
         log_info("HCI_EVENT_DISCONNECTION_COMPLETE \n");
         bt_hci_event_disconnect(bt) ;
         clock_remove_set(BT_CONN_CLK);

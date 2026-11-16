@@ -1392,20 +1392,24 @@ static int set_adv_enable(void *priv, u32 en)
 {
     ble_state_e next_state, cur_state;
 
+    // 检查广播控制使能标志，如果未允许控制广播，则返回操作错误
     if (!adv_ctrl_en) {
         return APP_BLE_OPERATION_ERROR;
     }
 
+    // 如果当前已有连接（con_handle 不为 0），则不允许在此状态下更改广播使能，返回错误
     if (con_handle) {
         return APP_BLE_OPERATION_ERROR;
     }
 
+    // 根据传入的 en（使能/禁用）参数，设定目标状态：开启对应广播状态，关闭对应空闲状态
     if (en) {
         next_state = BLE_ST_ADV;
     } else {
         next_state = BLE_ST_IDLE;
     }
 
+    // 获取当前 BLE 模块的工作状态
     cur_state =  get_ble_work_state();
     switch (cur_state) {
     case BLE_ST_ADV:
@@ -1413,37 +1417,40 @@ static int set_adv_enable(void *priv, u32 en)
     case BLE_ST_INIT_OK:
     case BLE_ST_NULL:
     case BLE_ST_DISCONN:
-        break;
+        break; // 如果当前状态在上述允许范围内，则继续执行
     default:
-        return APP_BLE_OPERATION_ERROR;
+        return APP_BLE_OPERATION_ERROR; // 处于其他不允许的状态时，返回操作错误
         break;
     }
 
+    // 如果当前状态与目标状态一致，则无需重复操作，直接返回无错误
     if (cur_state == next_state) {
         return APP_BLE_NO_ERROR;
     }
-    log_info("adv_en:%d\n", en);
-    set_ble_work_state(next_state);
+    log_info("adv_en:%d\n", en); // 打印广播使能状态变更日志
+    set_ble_work_state(next_state); // 更新 BLE 模块的工作状态
 
 #if EXT_ADV_MODE_EN
+    // 如果启用了扩展广播模式（Extended Advertising）
     if (en) {
-        ble_op_set_ext_adv_param(&ext_adv_param, sizeof(ext_adv_param));
+        ble_op_set_ext_adv_param(&ext_adv_param, sizeof(ext_adv_param)); // 设置扩展广播参数
 
         log_info_hexdump(&ext_adv_data, sizeof(ext_adv_data));
-        ble_op_set_ext_adv_data(&ext_adv_data, sizeof(ext_adv_data));
-
-        ble_op_set_ext_adv_enable(&ext_adv_enable, sizeof(ext_adv_enable));
+        ble_op_set_ext_adv_data(&ext_adv_data, sizeof(ext_adv_data));       // 设置扩展广播数据并打印内存转储
+        
+        ble_op_set_ext_adv_enable(&ext_adv_enable, sizeof(ext_adv_enable)); // 使能扩展广播
     } else {
-        ble_op_set_ext_adv_enable(&ext_adv_disable, sizeof(ext_adv_disable));
+        ble_op_set_ext_adv_enable(&ext_adv_disable, sizeof(ext_adv_disable)); // 禁用扩展广播
     }
 #else
+    // 普通广播模式
     if (en) {
-        advertisements_setup_init();
+        advertisements_setup_init(); // 如果是使能广播，则初始化广播相关配置
     }
-    ble_op_adv_enable(en);
+    ble_op_adv_enable(en); // 调用底层接口开启或关闭普通广播
 #endif /* EXT_ADV_MODE_EN */
 
-    return APP_BLE_NO_ERROR;
+    return APP_BLE_NO_ERROR; // 操作成功，返回无错误码
 }
 
 static int ble_disconnect(void *priv)
@@ -1549,26 +1556,27 @@ void bt_ble_adv_enable(u8 enable)
 
 u16 bt_ble_is_connected(void)
 {
-    return con_handle;
+    return con_handle; // 返回当前的蓝牙连接句柄（如果不为 0 则表示已连接，为 0 表示未连接）
 }
 
 void ble_module_enable(u8 en)
 {
-    log_info("mode_en:%d\n", en);
+    log_info("mode_en:%d\n", en); // 打印当前 BLE 模块使能状态日志
     if (en) {
-        adv_ctrl_en = 1;
-        bt_ble_adv_enable(1);
+        adv_ctrl_en = 1;          // 开启广播控制标志
+        bt_ble_adv_enable(1);     // 使能并启动蓝牙 BLE 广播
     } else {
         if (con_handle) {
-            adv_ctrl_en = 0;
-            ble_disconnect(NULL);
+            adv_ctrl_en = 0;      // 清除广播控制标志
+            printf("ble disconnect\n");
+            ble_disconnect(NULL); // 如果当前处于连接状态，则断开蓝牙连接
         } else {
-            bt_ble_adv_enable(0);
-            adv_ctrl_en = 0;
+            printf("ble adv disable\n");
+            bt_ble_adv_enable(0); // 如果未连接，则直接关闭蓝牙 BLE 广播
+            adv_ctrl_en = 0;      // 清除广播控制标志
         }
     }
 }
-
 static const char ble_ext_name[] = "(BLE)";
 
 void bt_ble_init(void)
