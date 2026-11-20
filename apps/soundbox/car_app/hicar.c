@@ -27,6 +27,8 @@ extern int BTSrv_IF_regSdpRfcommUuid(u8 *pbUuid, int sdUuidLen);
 extern int BTSrv_IF_Srv_setLocalUuid(int eUuidType, unsigned char len, unsigned char *pUuid);
 // 通过指定 UUID 向目标设备发起 RFCOMM 连接
 extern int RFCOMM_IF_connect(u8 *pstBtAddr, unsigned char *pbUUID, int dUUIDLen);
+// 断开指定本地 RFCOMM 通道
+extern int RFCOMM_IF_disconnect(u8 *pstBtAddr, int pHandle);
 // 协议栈命令准备与发送接口
 extern u32 user_send_cmd_prepare(USER_CMD_TYPE cmd, u16 param_len, u8 *param);
 
@@ -39,13 +41,27 @@ static const u8 hicar_fe36_uuid_128[16] = HICAR_FE36_UUID_128; // 存储 128 位
 static u8 hicar_remote_addr[6];
 static int hicar_reconnect_timer;
 static u8 hicar_connected_mask;
+static u8 hicar_connecting_mask;
 static u8 hicar_next_channel;
 static u8 hicar_reconnect_active;
-
+static u16 hicar_restart_timer;
+static u16 hicar_connect_timeout_timer;
+void hicar_reconnect_stop(void);
 /* Verification: request FE36 once, 3 seconds after requesting FE35. */
 static u16 hicar_fe36_delay_timer;
 static u8 hicar_fe36_delay_addr[6];
 static void hicar_connect_fe36_delayed(void *priv);
+static void hicar_reconnect_begin(void *priv);
+static void hicar_connect_timeout(void *priv);
+
+/* 停止正在等待的单次建链超时定时器。 */
+static void hicar_connect_timeout_stop(void)
+{
+    if (hicar_connect_timeout_timer) {
+        sys_timeout_del(hicar_connect_timeout_timer);
+        hicar_connect_timeout_timer = 0;
+    }
+}
 
 /**
  * @brief 注册 HiCar 蓝牙本地服务及 SDP 广播 UUID
@@ -143,12 +159,40 @@ static void hicar_connect_fe36_delayed(void *priv)
 
 static void hicar_reconnect_try(void *priv)
 {
+    /* 非 HiCar 模式的 RFCOMM 断开不参与 HiCar 状态机。 */
     if (reconnect_mgr.type != CONNECTIONMODE_Hicar) {
+        printf("[HiCar][RECONN] skip: current mode=%d is not HiCar\n", reconnect_mgr.type);
         return;
     }
 
-    if (!(hicar_connected_mask & BIT(hicar_next_channel))) {
-        hicar_connect_by_uuid(hicar_remote_addr, hicar_next_channel);
+    /* SDP/RFCOMM 建链为异步流程。同一通道尚未返回结果时不能重复下发，
+     * 否则会在协议栈中重复申请 channel，进而触发 channel 断言。 */
+    printf("[HiCar][RECONN] try: next=%s, connected=0x%02X, connecting=0x%02X, active=%u\n",
+           hicar_next_channel ? "FE36" : "FE35",
+           hicar_connected_mask, hicar_connecting_mask, hicar_reconnect_active);
+    if (!(hicar_connected_mask & BIT(hicar_next_channel)) &&
+        !(hicar_connecting_mask & BIT(hicar_next_channel))) {
+        hicar_connecting_mask |= BIT(hicar_next_channel);
+        hicar_connect_timeout_stop();
+        hicar_connect_timeout_timer = sys_timeout_add(NULL, hicar_connect_timeout, 8000);
+
+        printf("[HiCar][RECONN] start %s SDP, mac=%02X:%02X:%02X:%02X:%02X:%02X, timeout_id=%u\n",
+               hicar_next_channel ? "FE36" : "FE35",
+               hicar_remote_addr[0], hicar_remote_addr[1], hicar_remote_addr[2],
+               hicar_remote_addr[3], hicar_remote_addr[4], hicar_remote_addr[5],
+               hicar_connect_timeout_timer);
+
+        if (RFCOMM_IF_connect(hicar_remote_addr,
+                              hicar_next_channel ? (u8 *)hicar_fe36_uuid_128 : (u8 *)hicar_fe35_uuid_128,
+                              16)) {
+            /* 本地未注册目标 UUID 时没有异步回调，立即允许下一轮重试。 */
+            hicar_connecting_mask &= ~BIT(hicar_next_channel);
+            hicar_connect_timeout_stop();
+        }
+    } else {
+        printf("[HiCar][RECONN] skip %s: %s\n",
+               hicar_next_channel ? "FE36" : "FE35",
+               (hicar_connected_mask & BIT(hicar_next_channel)) ? "already connected" : "connecting");
     }
 }
 /*
@@ -167,18 +211,50 @@ void hicar_reconnect_start(u8 *addr)
     if (!addr || reconnect_mgr.type != CONNECTIONMODE_Hicar) {
         return;
     }
-    printf("进入hicar回连流程\n");
-    //打印mac地址
+    printf("重新开始 HiCar 回连流程\n");
+    // 打印本次命令指定的手机地址
     put_buf(addr,6);
-    /* 保存目标远程设备的 MAC 地址 */
+    printf("[HiCar][RECONN] reset old state: connected=0x%02X, connecting=0x%02X, timer=%d, active=%u\n",
+           hicar_connected_mask, hicar_connecting_mask,
+           hicar_reconnect_timer, hicar_reconnect_active);
+
+    /* 每次收到 0xFA 都以本次命令为准：先停止旧定时器并断开旧的两个 RFCOMM 通道。
+     * 断开是异步的，因此不能在这里立即再次建链，统一延迟 1 秒后重新开始。 */
+    hicar_reconnect_stop();
+
+    printf("[HiCar][RECONN] release old channels: FE35(local_id=0x0A), FE36(local_id=0x0B)\n");
+    RFCOMM_IF_disconnect(NULL, 0x0A);
+    RFCOMM_IF_disconnect(NULL, 0x0B);
+
+    /* 保存本次命令的目标 MAC 地址，后续只使用该地址重新建立 FE35、FE36。 */
     memcpy(hicar_remote_addr, addr, sizeof(hicar_remote_addr));
-
-    /* 重置连接掩码、通道序号，并标记重连状态为激活 */
     hicar_connected_mask = 0;
+    hicar_connecting_mask = 0;
     hicar_next_channel = 0;
-    hicar_reconnect_active = 1;
+    hicar_restart_timer = sys_timeout_add(NULL, hicar_reconnect_begin, 1000);
+    printf("[HiCar][RECONN] wait old channel release, restart_timer=%u\n", hicar_restart_timer);
+    if (!hicar_restart_timer) {
+        /* 定时器资源不足时仍需启动本次命令，避免回连流程被静默丢弃。 */
+        hicar_reconnect_begin(NULL);
+    }
+}
 
-    /* 若重连定时器未创建，则添加定时任务，定时触发 hicar_reconnect_try */
+/* 等待旧通道释放后，才启动本次 0xFA 对应的全新回连流程。 */
+static void hicar_reconnect_begin(void *priv)
+{
+    hicar_restart_timer = 0;
+
+    if (reconnect_mgr.type != CONNECTIONMODE_Hicar) {
+        printf("[HiCar][RECONN] restart canceled: mode=%d\n", reconnect_mgr.type);
+        return;
+    }
+
+    hicar_reconnect_active = 1;
+    printf("[HiCar][RECONN] restart begin: mac=%02X:%02X:%02X:%02X:%02X:%02X\n",
+           hicar_remote_addr[0], hicar_remote_addr[1], hicar_remote_addr[2],
+           hicar_remote_addr[3], hicar_remote_addr[4], hicar_remote_addr[5]);
+
+    /* 创建周期重试定时器；同一时刻只允许一个通道处于建链中。 */
     if (!hicar_reconnect_timer) {
         hicar_reconnect_timer = sys_timer_add(NULL, hicar_reconnect_try,
                                                HICAR_RECONNECT_INTERVAL_MS);
@@ -186,6 +262,17 @@ void hicar_reconnect_start(u8 *addr)
 
     /* 立即执行一次重连尝试，无需等待第一个定时周期 */
     hicar_reconnect_try(NULL);
+}
+
+/* 某次 SDP/RFCOMM 建链长时间未返回时，释放“建链中”状态供下一轮重试。 */
+static void hicar_connect_timeout(void *priv)
+{
+    hicar_connect_timeout_timer = 0;
+    hicar_connecting_mask &= ~BIT(hicar_next_channel);
+    printf("[HiCar] channel 0x%02X connect timeout, retry later\n",
+           hicar_next_channel ? 0x0B : 0x0A);
+    printf("[HiCar][RECONN] timeout state: connected=0x%02X, connecting=0x%02X\n",
+           hicar_connected_mask, hicar_connecting_mask);
 }
 
 /**
@@ -202,9 +289,15 @@ void hicar_reconnect_stop(void)
         sys_timer_del(hicar_reconnect_timer);
         hicar_reconnect_timer = 0;
     }
+    if (hicar_restart_timer) {
+        sys_timeout_del(hicar_restart_timer);
+        hicar_restart_timer = 0;
+    }
+    hicar_connect_timeout_stop();
 
     /* 清除所有重连状态及远程地址信息 */
     hicar_connected_mask = 0;
+    hicar_connecting_mask = 0;
     hicar_next_channel = 0;
     hicar_reconnect_active = 0;
     memset(hicar_remote_addr, 0, sizeof(hicar_remote_addr));
@@ -216,14 +309,23 @@ void hicar_reconnect_stop(void)
  */
 void hicar_reconnect_connected(u8 local_id)
 {
+    printf("[HiCar][RECONN] connected event: local_id=0x%02X, before connected=0x%02X, connecting=0x%02X\n",
+           local_id, hicar_connected_mask, hicar_connecting_mask);
     if (local_id == 0x0A) {
         /* 通道 0x0A (FE35) 连接成功：标记 Bit 0 置 1，并将下一个尝试的通道指向 1 (FE36) */
         hicar_connected_mask |= BIT(0);
+        hicar_connecting_mask &= ~BIT(0);
         hicar_next_channel = 1;
     } else if (local_id == 0x0B) {
         /* 通道 0x0B (FE36) 连接成功：标记 Bit 1 置 1 */
         hicar_connected_mask |= BIT(1);
+        hicar_connecting_mask &= ~BIT(1);
     }
+
+    hicar_connect_timeout_stop();
+    printf("[HiCar][RECONN] connected state: next=%s, connected=0x%02X, connecting=0x%02X\n",
+           hicar_next_channel ? "FE36" : "FE35",
+           hicar_connected_mask, hicar_connecting_mask);
 
     /* 当两个通道均已连接成功 (BIT(0) | BIT(1))，删除重连定时器以停止重试 */
     if (hicar_connected_mask == (BIT(0) | BIT(1)) && hicar_reconnect_timer) {
@@ -238,19 +340,40 @@ void hicar_reconnect_connected(u8 local_id)
  */
 void hicar_reconnect_disconnected(u8 local_id)
 {
-    /* 若非 HiCar 模式或当前未处于重连激活状态，则忽略断开事件 */
-    if (reconnect_mgr.type != CONNECTIONMODE_Hicar || !hicar_reconnect_active) {
+    if (reconnect_mgr.type != CONNECTIONMODE_Hicar) {
+        printf("[HiCar][RECONN] disconnect event ignored: local_id=0x%02X, mode=%d\n",
+               local_id, reconnect_mgr.type);
         return;
     }
+
+    /* 无论是否由本端发起回连，都先同步本地通道状态，防止状态残留。 */
+    printf("[HiCar][RECONN] disconnect event: local_id=0x%02X, before connected=0x%02X, connecting=0x%02X\n",
+           local_id, hicar_connected_mask, hicar_connecting_mask);
 
     if (local_id == 0x0A) {
         /* 通道 0x0A 断开：清除 Bit 0 标记，重置下一个尝试通道为 0 (优先重连 FE35) */
         hicar_connected_mask &= ~BIT(0);
+        hicar_connecting_mask &= ~BIT(0);
         hicar_next_channel = 0;
     } else if (local_id == 0x0B) {
         /* 通道 0x0B 断开：清除 Bit 1 标记，设置下一个尝试通道为 1 (重连 FE36) */
         hicar_connected_mask &= ~BIT(1);
+        hicar_connecting_mask &= ~BIT(1);
         hicar_next_channel = 1;
+    } else {
+        /* 打印非 HiCar 预期通道，便于发现 SDP 槽位分配异常。 */
+        printf("[HiCar][RECONN] unknown channel released: local_id=0x%02X\n", local_id);
+    }
+
+    /* 打印清理后的位图，烧录后可确认断开事件是否还遗留连接状态。 */
+    printf("[HiCar][RECONN] released state: connected=0x%02X, connecting=0x%02X, next=%s\n",
+           hicar_connected_mask, hicar_connecting_mask,
+           hicar_next_channel ? "FE36" : "FE35");
+
+    /* 手机主动建立的会话没有保存回连地址，只清状态、不发起反向连接。 */
+    if (!hicar_reconnect_active) {
+        printf("[HiCar][RECONN] passive channel released, no reconnect request pending\n");
+        return;
     }
 
     /* 若重连定时器未运行，重新启动定时器继续尝试重连 */
@@ -258,6 +381,23 @@ void hicar_reconnect_disconnected(u8 local_id)
         hicar_reconnect_timer = sys_timer_add(NULL, hicar_reconnect_try,
                                                HICAR_RECONNECT_INTERVAL_MS);
     }
+}
+
+/* SDP 查询失败时协议栈不会产生 RFCOMM 连接/断开事件，此处释放建链标志。 */
+void hicar_reconnect_sdp_result(u8 fail)
+{
+    if (reconnect_mgr.type != CONNECTIONMODE_Hicar ||
+        !hicar_reconnect_active || !fail) {
+        printf("[HiCar][RECONN] SDP result ignored: fail=%u, mode=%d, active=%u\n",
+               fail, reconnect_mgr.type, hicar_reconnect_active);
+        return;
+    }
+
+    printf("[HiCar][RECONN] SDP failed: %s not advertised by phone, connected=0x%02X, connecting=0x%02X\n",
+           hicar_next_channel ? "FE36" : "FE35",
+           hicar_connected_mask, hicar_connecting_mask);
+    hicar_connecting_mask &= ~BIT(hicar_next_channel);
+    hicar_connect_timeout_stop();
 }
 
 /**

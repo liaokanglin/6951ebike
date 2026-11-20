@@ -280,8 +280,15 @@ u8 user_sdp_uuid_connect_result(u8 flag)
 
     if (flag) {
         printf("not find rfcomm uuid connect ch info\n");
+        printf("[RFCOMM][SDP] failed: local_id=0x%02X, uuid=", want_to_connect_info.dHandle);
+        put_buf((u8 *)want_to_connect_info.pbUUID, want_to_connect_info.dUUIDLen);
+        /* HiCar SDP 查询失败不会再产生 RFCOMM 事件，通知回连状态机结束本轮建链。 */
+        extern void hicar_reconnect_sdp_result(u8 fail);
+        hicar_reconnect_sdp_result(1);
     } else {
         printf("find rfcomm uuid connect ch id,begin to connect\n");
+        printf("[RFCOMM][SDP] found: local_id=0x%02X, uuid=", want_to_connect_info.dHandle);
+        put_buf((u8 *)want_to_connect_info.pbUUID, want_to_connect_info.dUUIDLen);
     }
     return 0;
 }
@@ -297,9 +304,15 @@ int RFCOMM_IF_connect(u8 *pstBtAddr, unsigned char *pbUUID, int dUUIDLen)
     for (i = 0; i < USER_SDP_SERVICE_MAX; i++) {
         if (user_sdp_ser[i].working_flag == 0xA5) {
             sdp_index = &user_sdp_ser[i].user_rfcomm_info;
-            if ((sdp_index->dUUIDLen == dUUIDLen) && !memcmp(sdp_index->pbUUID, pbUUID, dUUIDLen - 1)) {
+            /* UUID 必须比较完整长度，避免末字节不同的服务被误判为同一服务。 */
+            if ((sdp_index->dUUIDLen == dUUIDLen) && !memcmp(sdp_index->pbUUID, pbUUID, dUUIDLen)) {
 
                 printf("find the UUID to connect\n");
+                printf("[RFCOMM] request: local_id=0x%02X, mac=%02X:%02X:%02X:%02X:%02X:%02X, uuid=",
+                       sdp_index->channel_id,
+                       pstBtAddr[0], pstBtAddr[1], pstBtAddr[2],
+                       pstBtAddr[3], pstBtAddr[4], pstBtAddr[5]);
+                put_buf(pbUUID, dUUIDLen);
                 want_to_connect_info.dResult = 0;
                 want_to_connect_info.dUUIDLen = dUUIDLen;
                 memcpy(want_to_connect_info.pbUUID, pbUUID, dUUIDLen);
@@ -310,17 +323,20 @@ int RFCOMM_IF_connect(u8 *pstBtAddr, unsigned char *pbUUID, int dUUIDLen)
         }
     }
     printf("not find the UUID to connect\n");
+    printf("[RFCOMM] local service not registered, requested uuid=");
+    put_buf(pbUUID, dUUIDLen);
     want_to_connect_info.dHandle = 0;
     want_to_connect_info.dResult = 1;
     return 1;
 }
 
-/* 请求断开最近记录的 RFCOMM 通道；当前实现未使用传入的地址和句柄。 */
+/* 请求断开调用方指定的本地 RFCOMM 通道。 */
 int RFCOMM_IF_disconnect(u8 *pstBtAddr, int pHandle)
 {
-
-    u8 local_cid = gx_iap2_id;
-    multi_spp_disconnect_channel(local_cid);
+    /* 使用调用方指定的本地通道，HiCar 重启时需要分别释放 FE35(0x0A)、FE36(0x0B)。 */
+    printf("[RFCOMM] disconnect request: local_id=0x%02X\n", pHandle);
+    multi_spp_disconnect_channel((u8)pHandle);
+    return 0;
 }
 /* 通过最近记录的 RFCOMM 通道发送数据，未使用传入的通道句柄。 */
 int RFCOMM_IF_sendData(u8 *pstBtAddr, int sdHandle, char *pbData, u16 wDataLen)  
@@ -358,6 +374,29 @@ extern void stu_rfcomm_reconn_stop(void);
 extern u8 reconnect_flag;
 static u8 hc_packet[1024];
 u8 uuid_answer_buf[1+16] = {0};
+
+/* 根据协议栈实际分配的本地 RFCOMM 通道号查询服务 UUID，禁止依赖固定槽位。 */
+static const u8 *find_registered_uuid_by_channel(u8 local_id)
+{
+    int slot;
+
+    for (slot = 0; slot < USER_SDP_SERVICE_MAX; slot++) {
+        BTRfcRegUUID_t *info = &user_sdp_ser[slot].user_rfcomm_info;
+
+        if (user_sdp_ser[slot].working_flag == 0xA5 &&
+            info->channel_id == local_id && info->dUUIDLen == 16) {
+            /* 打印实际映射，便于确认 FE35/FE36 是否分配到预期的本地通道。 */
+            printf("[HiCar][MAP] local_id=0x%02X, slot=%d, uuid=", local_id, slot);
+            put_buf((u8 *)info->pbUUID, info->dUUIDLen);
+            return (const u8 *)info->pbUUID;
+        }
+    }
+
+    /* 未找到通道时明确输出，便于发现服务表残留或通道号异常。 */
+    printf("[HiCar][MAP] local_id=0x%02X not found in SDP table\n", local_id);
+    return NULL;
+}
+
 /* 处理 RFCOMM 事件：1 为连接、2 为断开、7 为收数，并通过串口通知主控。 */
 int mutil_handle_data_deal(u8 local_id, u8 packet_type, u16 channel, u8 *packet, u16 size)
 {
@@ -376,44 +415,27 @@ int mutil_handle_data_deal(u8 local_id, u8 packet_type, u16 channel, u8 *packet,
 
         reconnect_flag = 0;
 
-        if(reconnect_mgr.type == CONNECTIONMODE_Hicar){
+        if (reconnect_mgr.type == CONNECTIONMODE_Hicar) {
+            /* 以注册表中的真实 UUID 为准，避免残留服务导致 FE35/FE36 通道错位。 */
+            const u8 *service_uuid = find_registered_uuid_by_channel(local_id);
 
-                printf("HiCar mode, local_id: %d\n", local_id);
-                if(local_id == 0x0A)
-                {
+            printf("HiCar mode, local_id: %d\n", local_id);
+            if (service_uuid &&
+                (!memcmp(service_uuid, hicar_fe35_uuid_128, 16) ||
+                 !memcmp(service_uuid, hicar_fe36_uuid_128, 16))) {
+                /* 将实际通道号和实际 UUID 原样通知主控，使主控正确绑定 HiCar 双通道。 */
+                printf("[HiCar][MAP] report to host: local_id=0x%02X, uuid=", local_id);
+                put_buf((u8 *)service_uuid, 16);
+                uuid_answer_buf[0] = local_id;
+                memcpy(uuid_answer_buf + 1, service_uuid, 16);
+                my_cmd_data_send(0x0a, uuid_answer_buf, sizeof(uuid_answer_buf));
 
-                    my_cmd_data_send(
-                        0xc0,
-                        hicar_fe35_uuid_128,
-                        16
-                    );
-
-                    uuid_answer_buf[0] = 0x0a;
-                    memcpy(uuid_answer_buf+1, hicar_fe35_uuid_128, 16);
-
-                    my_cmd_data_send(0x0a, uuid_answer_buf, 17);
-                    extern void hicar_reconnect_connected(u8 local_id);
-                    hicar_reconnect_connected(local_id);
-
-                }
-                else if(local_id == 0x0B)
-                {
-
-                    my_cmd_data_send(
-                        0xc0,
-                        hicar_fe36_uuid_128,
-                        16
-                    );
-
-                    uuid_answer_buf[0] = 0x0b;
-                    memcpy(uuid_answer_buf+1, hicar_fe36_uuid_128, 16);
-
-                    my_cmd_data_send(0x0a, uuid_answer_buf, 17);
-                    extern void hicar_reconnect_connected(u8 local_id);
-                    hicar_reconnect_connected(local_id);
-
-                }
-    } else {
+                extern void hicar_reconnect_connected(u8 local_id);
+                hicar_reconnect_connected(local_id);
+            } else {
+                printf("[HiCar] unexpected RFCOMM channel: local_id=0x%02X\n", local_id);
+            }
+        } else {
 
 /* 按实际注册表查找通道对应的服务，不能将槽位固定解释为某种投屏类型。 */
         int slot;
@@ -448,6 +470,13 @@ int mutil_handle_data_deal(u8 local_id, u8 packet_type, u16 channel, u8 *packet,
         break;
     case 2: 
         rfcomm_connect_flag = 0;
+        printf("[RFCOMM] disconnect event: local_id=0x%02X, channel=%u, mode=%d\n",
+               local_id, channel, reconnect_mgr.type);
+        if (reconnect_mgr.type == CONNECTIONMODE_Hicar) {
+            /* 通知 HiCar 回连状态机：该通道已经释放，可在下一轮重新建立。 */
+            extern void hicar_reconnect_disconnected(u8 local_id);
+            hicar_reconnect_disconnected(local_id);
+        }
         /* SPP 断开但 BR 仍连接时，使用保存的手机地址启动 CarLife 重试。 */
         if (reconnect_mgr.type == CONNECTIONMODE_Carlife) {
             printf("[CarLife] SPP disconnected, reconnect MAC: %02X:%02X:%02X:%02X:%02X:%02X\r\n",
@@ -696,7 +725,13 @@ void carplay_bluetooth_init()
         BTSrv_IF_Srv_setLocalUuid(BT_SERVICE_UUID_128, 16, (u8 *)carlife_service_uuid_128);
         break;
     default:
-
+        printf("normal mode init\n");
+        // BTSrv_IF_regSdpRfcommUuid((u8 *)Android_auto_uuid_128, 16);
+        // BTSrv_IF_regSdpRfcommUuid((u8 *)apple_iap2_uuid_128_1, 16);
+        BTSrv_IF_regSdpRfcommUuid((u8 *)normal_service_uuid_128, 16);
+        // BTSrv_IF_Srv_setLocalUuid(BT_SERVICE_UUID_128, 16, (u8 *)Android_auto_uuid_128);
+        // BTSrv_IF_Srv_setLocalUuid(BT_SERVICE_UUID_128, 16, (u8 *)carplay_service_uuid_128);
+        // BTSrv_IF_Srv_setLocalUuid(BT_SERVICE_UUID_128, 16, (u8 *)apple_iap2_uuid_128_3);
         break;
     }
 
@@ -729,36 +764,23 @@ void my_iap2_disconnect()
 /* 注销原投屏服务，注册 HiCar FE35、FE36，并更新对应的 EIR 广播。 */
 void hicar_mode_init(void)
 {
-    printf("enter hicar mode\n");
+    printf("[HiCar][MODE] begin switch, clear old RFCOMM services\n");
 
-    user_send_cmd_prepare(
-        USER_CTRL_WRITE_SCAN_ENABLE,
-        0,
-        NULL
-    );
+    /* 先停止对外可见的蓝牙入口，避免手机读取到切换过程中的旧 SDP/EIR 信息。 */
+    bt_ble_adv_enable(0);
+    user_send_cmd_prepare(USER_CTRL_WRITE_SCAN_DISABLE, 0, NULL);
+    user_send_cmd_prepare(USER_CTRL_WRITE_CONN_DISABLE, 0, NULL);
 
-    user_send_cmd_prepare(
-        USER_CTRL_WRITE_CONN_ENABLE,
-        0,
-        NULL
-    );
-
-    BTSrv_IF_unregSdpRfcommUuid(
-        (u8 **)car_uuid_buf[0],
-        16
-    );
-
-    BTSrv_IF_unregSdpRfcommUuid(
-        (u8 **)car_uuid_buf[1],
-        16
-    );
-
-    BTSrv_IF_unregSdpRfcommUuid(
-        (u8 **)car_uuid_buf[2],
-        16
-    );
-
+    /* HiCar 必须独占前两个 RFCOMM 槽位：FE35=0x0A、FE36=0x0B。 */
+    /* 释放旧会话，确保清空服务表后不存在指向旧服务的活动 RFCOMM 通道。 */
+    RFCOMM_IF_disconnect(NULL, RFCOMM_CH_SPP_A);
+    RFCOMM_IF_disconnect(NULL, RFCOMM_CH_SPP_B);
+    RFCOMM_IF_disconnect(NULL, RFCOMM_CH_SPP_C);
+    /* 清除普通蓝牙、CarPlay、AA、CarLife 等全部残留服务，确保 FE35 从 0x0A 分配。 */
+    BTSrv_IF_clearAllSdpRfcommUuid();
     uuid_bufffer_clean();
+    printf("[HiCar][MODE] old SDP/EIR cleared, register FE35->0x%02X and FE36->0x%02X\n",
+           RFCOMM_CH_SPP_A, RFCOMM_CH_SPP_B);
 
     BTSrv_IF_regSdpRfcommUuid(
         (u8 *)hicar_fe35_uuid_128,
@@ -769,6 +791,7 @@ void hicar_mode_init(void)
         (u8 *)hicar_fe36_uuid_128,
         16
     );
+    printf("[HiCar][MODE] FE35/FE36 SDP registration requested\n");
 
     BTSrv_IF_Srv_setLocalUuid(
         BT_SERVICE_UUID_128,
@@ -793,6 +816,9 @@ void hicar_mode_init(void)
         0,
         NULL
     );
+    /* 双 HiCar 服务和 EIR 已完整更新后，才重新开放 BLE 广播。 */
+    bt_ble_adv_enable(1);
+    printf("[HiCar][MODE] switch complete, BLE advertising enabled\n");
 
 }
 #endif

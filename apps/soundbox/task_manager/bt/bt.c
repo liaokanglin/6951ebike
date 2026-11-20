@@ -463,8 +463,8 @@ void bt_function_select_init()
         /* bt_set_tx_power(9);//ble txpwer level:0~9 */
         memcpy(tmp_ble_addr, (void *)bt_get_mac_addr(), 6);
 #else
-        lib_make_ble_address(tmp_ble_addr, (void *)bt_get_mac_addr());//ble mac 与 edr mac 一致
-        // memcpy(tmp_ble_addr, (void *)bt_get_mac_addr(), 6);//ble mac 与 edr mac bu
+        lib_make_ble_address(tmp_ble_addr, (void *)bt_get_mac_addr());//ble mac 与 edr mac 不一致
+        // memcpy(tmp_ble_addr, (void *)bt_get_mac_addr(), 6);//ble mac 与 edr mac 相同
 #endif //
         le_controller_set_mac((void *)tmp_ble_addr);
         printf("\n-----edr + ble 's address-----");
@@ -487,7 +487,7 @@ void bt_function_select_init()
     ret = syscfg_read(CFG_HC_PAIR_PIN_CODE, &hc_pair_flag, 1);
     if(!hc_pair_flag)
     {
-        extern void __set_simple_pair_flag(u8 flag); 
+        extern void __set_simple_pair_flag(u8 flag);
         __set_simple_pair_flag(1);
     }else
     {
@@ -524,6 +524,11 @@ void bt_update_ble_mac_address(u8 is_hicar_mode)
 u8 switch_ble_mac_hicar = 0;
 void switch_to_hicar_mode(void)
 {
+    // if(switch_ble_mac_hicar == 1)
+    // {
+    //     printf("Already in HiCar mode, no need to switch.\n");
+    //     return;
+    // }
     /* 1. 停止当前的 BLE 广播 */
     bt_ble_adv_enable(0);
 
@@ -541,6 +546,12 @@ void switch_to_hicar_mode(void)
 
 void switch_to_carplay_mode(void)
 {
+    // if(switch_ble_mac_hicar == 0)
+    // {
+    //     printf("Already in CarPlay/AA mode, no need to switch.\n");
+    //     return;
+
+    // }
     /* 1. 停止当前的 BLE 广播 */
     bt_ble_adv_enable(0);
 
@@ -572,7 +583,7 @@ u8 app_get_curr_task();
 int  filter_out_sbc_data_en(void)
 {
     printf("filter_out_sbc_data_en %d ...\r\n", app_get_curr_task());
-    
+
     if(app_get_curr_task() != APP_BT_TASK)
     {
         sbc_data_en = 1;    //
@@ -714,7 +725,7 @@ static int bt_connction_status_event_handler(struct bt_event *bt)
         log_info(" BT_STATUS_SECOND_DISCONNECT\n");
         bt_status_disconnect(bt);
         user_send_cmd_prepare(USER_CTRL_DISCONNECTION_HCI, 0, NULL);
-        
+
         break;
     case BT_STATUS_PHONE_INCOME:
         log_info("BT_STATUS_PHONE_INCOME\n");
@@ -807,7 +818,7 @@ static int bt_connction_status_event_handler(struct bt_event *bt)
         printf("??????????????\r\n");
         u8 phone_addr_temp[6] = {0};
         memcpy(phone_addr_temp, bt->args, 6);
-        
+
         void carlife_conn_start(u8 *addr);
         carlife_conn_start(phone_addr_temp);
 
@@ -838,7 +849,7 @@ static int bt_connction_status_event_handler(struct bt_event *bt)
                phone_addr_temp1[0], phone_addr_temp1[1], phone_addr_temp1[2],
                phone_addr_temp1[3], phone_addr_temp1[4], phone_addr_temp1[5]);
 
-        
+
         printf("[bt->value %d] -- [reconnect_flag %d]", bt->value, reconnect_flag);
         if(1 == gx_get_conn_remote_type())//1 安卓
         {
@@ -847,6 +858,10 @@ static int bt_connction_status_event_handler(struct bt_event *bt)
         }
         if(bt->value && reconnect_flag == 1)
         {
+            //如果是hicar不继续进行下去
+            if(reconnect_mgr.type == CONNECTIONMODE_Hicar){
+                return 1 ;
+            }
             printf("my reconnect flag\r\n");
             reconnect_flag = 0;
             stu_rfcomm_reconn_handle(phone_addr_temp1);
@@ -865,8 +880,8 @@ static int bt_connction_status_event_handler(struct bt_event *bt)
 
         extern u8 time_get_active_reporting;
         time_get_active_reporting = 1;
-        
-        #if 0 
+
+        #if 0
         if(gx_get_conn_remote_type() == 1)
         {
             printf("Android conn time get\r\n");
@@ -887,10 +902,10 @@ static int bt_connction_status_event_handler(struct bt_event *bt)
 extern u8 rfcomm_connect_flag;
 void user_send_connect_diy_profile(u8 *addr)
 {
-    if(rfcomm_connect_flag == 1){
+    if(rfcomm_connect_flag == 1 || reconnect_mgr.type == CONNECTIONMODE_Hicar){
         return;
     }
-    printf(">>>>>>>>>>>>>>>>>> user_send_connect_diy_profile\n");
+    printf("bt>>>>>>>>>>>>>>>>>> user_send_connect_diy_profile\n");
     u8 rfcomm_uuid[16] = {0};
         if(2 == gx_get_conn_remote_type())
         {
@@ -968,7 +983,7 @@ static int bt_hci_event_handler(struct bt_event *bt)
         my_cmd_data_send(MY_BT_CONN_STATUS, &gx_tmp_data, 1);
 
         my_remote_clean();
-        
+
         break;
     case BTSTACK_EVENT_HCI_CONNECTIONS_DELETE:
     case HCI_EVENT_CONNECTION_COMPLETE:
@@ -1006,7 +1021,7 @@ static int bt_hci_event_handler(struct bt_event *bt)
             break;
         default:
             printf("default ..... \r\n");
-            
+
             bt_hci_event_disconnect(bt) ;
             break;
         }

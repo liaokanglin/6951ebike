@@ -168,6 +168,10 @@ static void uart_u_task(void *arg)
         if (uart_rxcnt)
         {
             printf("get_buffer3:\r\n");
+            /* 记录大块 UART 数据的实际收包长度，用于确认 HiCar 认证大包是否完整到达。 */
+            if (uart_rxcnt >= 512) {
+                printf("[HiCar][UART] large RX chunk: %d bytes\n", uart_rxcnt);
+            }
             // put_buf(uart_rxbuf, uart_rxcnt);
             uart_data_received(uart_rxbuf, uart_rxcnt);
 #if (!UART_DEV_FLOW_CTRL)
@@ -228,7 +232,9 @@ void uart_dev_test_main()
     u_arg.rx_pin = IO_PORTA_06;
     u_arg.rx_cbuf = uart_cbuf;
     u_arg.rx_cbuf_size = 2048;
-    u_arg.frame_length = 1024;
+    /* HiCar 认证报文实测 payload 可达 1046 字节，加上 UART 协议头尾会超过 1024。 */
+    u_arg.frame_length = 1536;
+    printf("[HiCar][UART] RX frame threshold set to %d bytes\n", u_arg.frame_length);
     u_arg.rx_timeout = 5;
     u_arg.isr_cbfun = uart_isr_hook;
     // u_arg.baud = 115200;
@@ -855,7 +861,7 @@ int gx_uart_event_handler(struct notify_uart *nfuart)
         {
             printf("hicar mode init\r\n");
             extern void  switch_to_hicar_mode(void);
-            switch_to_hicar_mode();
+            switch_to_hicar_mode();//ble地址和bt地址相同
             hicar_mode_init();
         }else{//(reconnect_mgr.type不为CONNECTIONMODE_Hicar
             extern void carplay_bluetooth_init();
@@ -865,7 +871,7 @@ int gx_uart_event_handler(struct notify_uart *nfuart)
         if(switch_ble_mac_hicar == 1 && reconnect_mgr.type != CONNECTIONMODE_Hicar)
         {
             printf("switch_ble_mac_hicar\r\n");
-            switch_to_carplay_mode();
+            switch_to_carplay_mode();//ble地址和bt地址不同
         }
         my_cmd_err_send(MY_CMD_OK, 0, 0);
         break;
@@ -1377,6 +1383,7 @@ int gx_uart_event_handler(struct notify_uart *nfuart)
 
     case GX_SET_BT_HFP_ENABLE:
         printf("--GX_SET_BT_HFP_ENABLE--\r\n");
+        printf("(get_curr_channel_state() & HFP_CH): %d\r\n", (get_curr_channel_state() & HFP_CH));
         if (cmd_data_tmp[0] == 0) {
             printf("Disabling HFP...\r\n");
             user_send_cmd_prepare(USER_CTRL_HFP_DISCONNECT, 0, NULL);
@@ -1883,6 +1890,11 @@ static void process_queue(void)
             else
             {
                 // 帧不完整，等待更多数据
+                /* 仅打印大包等待状态，避免普通短帧导致日志过多。 */
+                if (frame_len >= 512) {
+                    printf("[HiCar][UART] wait complete frame: have=%d expect=%d\n",
+                           qsize, frame_len);
+                }
                 break;
             }
         }

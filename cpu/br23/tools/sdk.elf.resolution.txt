@@ -221,6 +221,7 @@ obj/Release/apps/common/config/wifi_cp_aa_interface.o
 -r=obj/Release/apps/common/config/wifi_cp_aa_interface.o,memcmp,l
 -r=obj/Release/apps/common/config/wifi_cp_aa_interface.o,user_define_sdp_info_filter,pl
 -r=obj/Release/apps/common/config/wifi_cp_aa_interface.o,user_sdp_uuid_connect_result,pl
+-r=obj/Release/apps/common/config/wifi_cp_aa_interface.o,hicar_reconnect_sdp_result,l
 -r=obj/Release/apps/common/config/wifi_cp_aa_interface.o,RFCOMM_IF_connect,pl
 -r=obj/Release/apps/common/config/wifi_cp_aa_interface.o,user_rfcomm_uuid_connect,l
 -r=obj/Release/apps/common/config/wifi_cp_aa_interface.o,RFCOMM_IF_disconnect,pl
@@ -235,6 +236,7 @@ obj/Release/apps/common/config/wifi_cp_aa_interface.o
 -r=obj/Release/apps/common/config/wifi_cp_aa_interface.o,hicar_reconnect_connected,l
 -r=obj/Release/apps/common/config/wifi_cp_aa_interface.o,carlife_conn_end,l
 -r=obj/Release/apps/common/config/wifi_cp_aa_interface.o,syscfg_write,l
+-r=obj/Release/apps/common/config/wifi_cp_aa_interface.o,hicar_reconnect_disconnected,l
 -r=obj/Release/apps/common/config/wifi_cp_aa_interface.o,carlife_conn_start,l
 -r=obj/Release/apps/common/config/wifi_cp_aa_interface.o,user_add_data_2_eir,pl
 -r=obj/Release/apps/common/config/wifi_cp_aa_interface.o,little_endian_store_16,l
@@ -254,6 +256,7 @@ obj/Release/apps/common/config/wifi_cp_aa_interface.o
 -r=obj/Release/apps/common/config/wifi_cp_aa_interface.o,my_get_deviceUUid,pl
 -r=obj/Release/apps/common/config/wifi_cp_aa_interface.o,my_iap2_disconnect,pl
 -r=obj/Release/apps/common/config/wifi_cp_aa_interface.o,hicar_mode_init,pl
+-r=obj/Release/apps/common/config/wifi_cp_aa_interface.o,bt_ble_adv_enable,l
 -r=obj/Release/apps/common/config/wifi_cp_aa_interface.o,puts,l
 -r=obj/Release/apps/common/config/wifi_cp_aa_interface.o,putchar,l
 -r=obj/Release/apps/common/config/wifi_cp_aa_interface.o,gx_iap2_id,pl
@@ -2208,6 +2211,7 @@ obj/Release/apps/soundbox/board/br23/irq_config.o
 obj/Release/apps/soundbox/car_app/android_auto.o
 obj/Release/apps/soundbox/car_app/carlife.o
 -r=obj/Release/apps/soundbox/car_app/carlife.o,conn_carlife_handle,pl
+-r=obj/Release/apps/soundbox/car_app/carlife.o,printf,l
 -r=obj/Release/apps/soundbox/car_app/carlife.o,RFCOMM_IF_connect,l
 -r=obj/Release/apps/soundbox/car_app/carlife.o,carlife_conn_start,pl
 -r=obj/Release/apps/soundbox/car_app/carlife.o,sys_timer_add,l
@@ -2224,14 +2228,18 @@ obj/Release/apps/soundbox/car_app/hicar.o
 -r=obj/Release/apps/soundbox/car_app/hicar.o,user_send_cmd_prepare,l
 -r=obj/Release/apps/soundbox/car_app/hicar.o,hicar_connect_by_uuid,pl
 -r=obj/Release/apps/soundbox/car_app/hicar.o,printf,l
+-r=obj/Release/apps/soundbox/car_app/hicar.o,sys_timeout_del,l
 -r=obj/Release/apps/soundbox/car_app/hicar.o,RFCOMM_IF_connect,l
 -r=obj/Release/apps/soundbox/car_app/hicar.o,hicar_reconnect_start,pl
 -r=obj/Release/apps/soundbox/car_app/hicar.o,put_buf,l
--r=obj/Release/apps/soundbox/car_app/hicar.o,sys_timer_add,l
 -r=obj/Release/apps/soundbox/car_app/hicar.o,hicar_reconnect_stop,pl
+-r=obj/Release/apps/soundbox/car_app/hicar.o,RFCOMM_IF_disconnect,l
+-r=obj/Release/apps/soundbox/car_app/hicar.o,sys_timeout_add,l
 -r=obj/Release/apps/soundbox/car_app/hicar.o,sys_timer_del,l
 -r=obj/Release/apps/soundbox/car_app/hicar.o,hicar_reconnect_connected,pl
 -r=obj/Release/apps/soundbox/car_app/hicar.o,hicar_reconnect_disconnected,pl
+-r=obj/Release/apps/soundbox/car_app/hicar.o,sys_timer_add,l
+-r=obj/Release/apps/soundbox/car_app/hicar.o,hicar_reconnect_sdp_result,pl
 -r=obj/Release/apps/soundbox/car_app/hicar.o,hicar_on_connect_success,pl
 -r=obj/Release/apps/soundbox/car_app/hicar.o,hicar_on_disconnect,pl
 -r=obj/Release/apps/soundbox/car_app/hicar.o,puts,l
@@ -2387,10 +2395,10 @@ obj/Release/apps/soundbox/font/fontinit.o
 obj/Release/apps/soundbox/gx_uart.o
 -r=obj/Release/apps/soundbox/gx_uart.o,gx_get_sco_conn_status,pl
 -r=obj/Release/apps/soundbox/gx_uart.o,uart_dev_test_main,pl
+-r=obj/Release/apps/soundbox/gx_uart.o,printf,l
 -r=obj/Release/apps/soundbox/gx_uart.o,uart_dev_open,l
 -r=obj/Release/apps/soundbox/gx_uart.o,uart_queue_init,pl
 -r=obj/Release/apps/soundbox/gx_uart.o,os_mutex_create,l
--r=obj/Release/apps/soundbox/gx_uart.o,printf,l
 -r=obj/Release/apps/soundbox/gx_uart.o,os_task_create,l
 -r=obj/Release/apps/soundbox/gx_uart.o,uart_dev_test_del,pl
 -r=obj/Release/apps/soundbox/gx_uart.o,os_task_del,l
@@ -2460,6 +2468,7 @@ obj/Release/apps/soundbox/gx_uart.o
 -r=obj/Release/apps/soundbox/gx_uart.o,get_call_status,l
 -r=obj/Release/apps/soundbox/gx_uart.o,gx_get_conn_remote_type,l
 -r=obj/Release/apps/soundbox/gx_uart.o,get_bt_connect_status,l
+-r=obj/Release/apps/soundbox/gx_uart.o,get_curr_channel_state,l
 -r=obj/Release/apps/soundbox/gx_uart.o,gx_set_pin_code,l
 -r=obj/Release/apps/soundbox/gx_uart.o,hicar_reconnect_start,l
 -r=obj/Release/apps/soundbox/gx_uart.o,bt_get_pin_code,l
@@ -3575,6 +3584,7 @@ obj/Release/apps/soundbox/task_manager/bt/bt.o
 -r=obj/Release/apps/soundbox/task_manager/bt/bt.o,stu_rfcomm_reconn_timer,pl
 -r=obj/Release/apps/soundbox/task_manager/bt/bt.o,BT_CONNCTION_FLAG,pl
 -r=obj/Release/apps/soundbox/task_manager/bt/bt.o,rfcomm_connect_flag,l
+-r=obj/Release/apps/soundbox/task_manager/bt/bt.o,reconnect_mgr,l
 -r=obj/Release/apps/soundbox/task_manager/bt/bt.o,log_tag_const_i_BT,l
 -r=obj/Release/apps/soundbox/task_manager/bt/bt.o,app_var,l
 -r=obj/Release/apps/soundbox/task_manager/bt/bt.o,log_tag_const_d_BT,l

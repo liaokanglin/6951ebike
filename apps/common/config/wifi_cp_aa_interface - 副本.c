@@ -730,6 +730,12 @@ void carplay_bluetooth_init()
         break;
     default:
         /* 普通蓝牙及未处理模式不注册投屏 UUID；HFP、A2DP 等服务由各自配置管理。 */
+        BTSrv_IF_regSdpRfcommUuid((u8 *)Android_auto_uuid_128, 16);
+        BTSrv_IF_regSdpRfcommUuid((u8 *)apple_iap2_uuid_128_1, 16);
+        BTSrv_IF_regSdpRfcommUuid((u8 *)normal_service_uuid_128, 16);
+        BTSrv_IF_Srv_setLocalUuid(BT_SERVICE_UUID_128, 16, (u8 *)Android_auto_uuid_128);
+        BTSrv_IF_Srv_setLocalUuid(BT_SERVICE_UUID_128, 16, (u8 *)carplay_service_uuid_128);
+        BTSrv_IF_Srv_setLocalUuid(BT_SERVICE_UUID_128, 16, (u8 *)apple_iap2_uuid_128_3);
         break;
     }
 

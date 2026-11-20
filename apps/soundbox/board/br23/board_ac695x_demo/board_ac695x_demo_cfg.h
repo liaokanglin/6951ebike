@@ -14,11 +14,6 @@
 #define RFCOMM_UUID_CARLIFE_ENABLE         1  // 开启CarLife的RFCOMM UUID
 #define RFCOMM_UUID_HICAR_ENABLE           1  // 开启HiCar的RFCOMM UUID
 
-#if (RFCOMM_UUID_CARPLAY_ENABLE && RFCOMM_UUID_ANDROID_AUTO_ENABLE && RFCOMM_UUID_CARLIFE_ENABLE && RFCOMM_UUID_HICAR_ENABLE)
-// #error "not support all enable, sdk only support 3 uuid enable"
-#endif  //目前只支持注册三个rfcomm_uuid，如果需要更多，需要注意是否可以动态切换
-
-
 
 //*********************************************************************************//
 //                                 配置开始                                        //
@@ -682,61 +677,59 @@ DAC硬件上的连接方式,可选的配置：
 
 #define TCFG_AUDIO_DEC_OUT_TASK				0	// 解码使用单独任务做输出
 
-//*********************************************************************************//
-//                                  蓝牙配置                                       //
-//*********************************************************************************//
-#define TCFG_USER_TWS_ENABLE                0   //tws功能使能
-#define TCFG_USER_BLE_ENABLE                1   //BLE功能使能
-#define TCFG_USER_BT_CLASSIC_ENABLE         1   //经典蓝牙功能使能
-#define TCFG_BT_SUPPORT_AAC                 0   //AAC格式支持
-#define TCFG_USER_EMITTER_ENABLE            0   //emitter功能使能
-#define TCFG_BT_SNIFF_ENABLE                0   //bt sniff 功能使能
+//***//
+//                                      蓝牙配置                                   //
+//***//
+#define TCFG_USER_TWS_ENABLE                0   // tws功能使能
+#define TCFG_USER_BLE_ENABLE                1   // BLE功能使能
+#define TCFG_USER_BT_CLASSIC_ENABLE         1   // 经典蓝牙功能使能
+#define TCFG_BT_SUPPORT_AAC                 0   // AAC格式支持
+#define TCFG_USER_EMITTER_ENABLE            0   // emitter功能使能
+#define TCFG_BT_SNIFF_ENABLE                0   // bt sniff 功能使能
 
-#define USER_SUPPORT_PROFILE_SPP    0
-#define USER_SUPPORT_PROFILE_HFP    1
-#define USER_SUPPORT_PROFILE_A2DP   1
-#define USER_SUPPORT_PROFILE_AVCTP  1
-#define USER_SUPPORT_PROFILE_HID    1
-#define USER_SUPPORT_PROFILE_PNP    1
-#define USER_SUPPORT_PROFILE_PBAP   1
-#define USER_SUPPORT_PROFILE_MAP    1
+#define USER_SUPPORT_PROFILE_SPP    0           // SPP串口协议支持
+#define USER_SUPPORT_PROFILE_HFP    1           // 免提电话协议支持
+#define USER_SUPPORT_PROFILE_A2DP   1           // 音频传输协议支持
+#define USER_SUPPORT_PROFILE_AVCTP  1           // 音视频控制传输协议支持
+#define USER_SUPPORT_PROFILE_HID    1           // 人机接口设备协议支持
+#define USER_SUPPORT_PROFILE_PNP    1           // 设备识别协议支持
+#define USER_SUPPORT_PROFILE_PBAP   1           // 电话本访问协议支持
+#define USER_SUPPORT_PROFILE_MAP    1           // 信息访问协议支持
 
-#define USER_SUPPORT_DUAL_A2DP_SOURCE              0
+#define USER_SUPPORT_DUAL_A2DP_SOURCE       0   // 双路A2DP源端支持
 
 #if TCFG_USER_TWS_ENABLE
-#define TCFG_BD_NUM						    1   //连接设备个数配置
-#define TCFG_AUTO_STOP_PAGE_SCAN_TIME       0   //配置一拖二第一台连接后自动关闭PAGE SCAN的时间(单位分钟)
-#define TCFG_USER_ESCO_SLAVE_MUTE           0   //对箱通话slave出声音
+#define TCFG_BD_NUM                         1   // 连接设备个数配置
+#define TCFG_AUTO_STOP_PAGE_SCAN_TIME       0   // 配置一拖二第一台连接后自动关闭PAGE SCAN的时间(单位分钟)
+#define TCFG_USER_ESCO_SLAVE_MUTE           0   // 对箱通话slave出声音
 #else
-#define TCFG_BD_NUM						    1   //连接设备个数配置
-#define TCFG_AUTO_STOP_PAGE_SCAN_TIME       0 //配置一拖二第一台连接后自动关闭PAGE SCAN的时间(单位分钟)
-#define TCFG_USER_ESCO_SLAVE_MUTE           0   //对箱通话slave出声音
+#define TCFG_BD_NUM                         1   // 连接设备个数配置
+#define TCFG_AUTO_STOP_PAGE_SCAN_TIME       0   // 配置一拖二第一台连接后自动关闭PAGE SCAN的时间(单位分钟)
+#define TCFG_USER_ESCO_SLAVE_MUTE           0   // 对箱通话slave出声音
 #endif
 
-#define BT_INBAND_RINGTONE                  0   //是否播放手机自带来电铃声
-#define BT_PHONE_NUMBER                     0//1   //是否播放来电报号
-#define BT_SYNC_PHONE_RING                  0   //是否TWS同步播放来电铃声
-#define BT_SUPPORT_DISPLAY_BAT              0//1   //是否使能电量检测
-#define BT_SUPPORT_MUSIC_VOL_SYNC           0   //是否使能音量同步
+#define BT_INBAND_RINGTONE                  0   // 是否播放手机自带来电铃声
+#define BT_PHONE_NUMBER                     0//1  // 是否播放来电报号
+#define BT_SYNC_PHONE_RING                  0   // 是否TWS同步播放来电铃声
+#define BT_SUPPORT_DISPLAY_BAT              0//1  // 是否使能电量检测
+#define BT_SUPPORT_MUSIC_VOL_SYNC           0   // 是否使能音量同步
 
-#define TCFG_BLUETOOTH_BACK_MODE			1	//后台模式
+#define TCFG_BLUETOOTH_BACK_MODE            1   // 后台模式
 
 #if (TCFG_USER_TWS_ENABLE && TCFG_BLUETOOTH_BACK_MODE) && (TCFG_BT_SNIFF_ENABLE==0) && defined(CONFIG_LOCAL_TWS_ENABLE)
-#define TCFG_DEC2TWS_ENABLE					1	// 本地解码转发
-#define TCFG_PCM_ENC2TWS_ENABLE				1	// pcm编码转发
-#define TCFG_PCM2TWS_SBC_ENABLE				1	// pcm转发采样sbc编码
-#define TCFG_TONE2TWS_ENABLE				1	// 提示音转发
+#define TCFG_DEC2TWS_ENABLE                 1   // 本地解码转发
+#define TCFG_PCM_ENC2TWS_ENABLE             1   // pcm编码转发
+#define TCFG_PCM2TWS_SBC_ENABLE             1   // pcm转发采样sbc编码
+#define TCFG_TONE2TWS_ENABLE                1   // 提示音转发
 #else
-#define TCFG_DEC2TWS_ENABLE					0
-#define TCFG_PCM_ENC2TWS_ENABLE				0
-#define TCFG_PCM2TWS_SBC_ENABLE				0
-#define TCFG_TONE2TWS_ENABLE				0
+#define TCFG_DEC2TWS_ENABLE                 0   // 本地解码转发（关闭）
+#define TCFG_PCM_ENC2TWS_ENABLE             0   // pcm编码转发（关闭）
+#define TCFG_PCM2TWS_SBC_ENABLE             0   // pcm转发采样sbc编码（关闭）
+#define TCFG_TONE2TWS_ENABLE                0   // 提示音转发（关闭）
 #endif
 
-
-
 #if (APP_ONLINE_DEBUG && !USER_SUPPORT_PROFILE_SPP)
-#error "NEED ENABLE USER_SUPPORT_PROFILE_SPP!!!"
+#error "NEED ENABLE USER_SUPPORT_PROFILE_SPP!!!" // 开启在线调试时若未开启SPP协议则编译报错提示
 #endif
 
 

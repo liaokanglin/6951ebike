@@ -13,7 +13,7 @@ copy ..\..\ota_all.bin .
 copy ..\..\ota_nor.bin .
 
 
-..\..\isd_download.exe -tonorflash -dev br23 -boot 0x12000 -div8 -wait 300 -uboot uboot.boot -app app.bin -res tone.cfg cfg_tool.bin eq_cfg_hw.bin  -key 564AC690X-69AE.key
+..\..\isd_download.exe -tonorflash -dev br23 -boot 0x12000 -div8 -wait 300 -uboot uboot.boot -app app.bin -res tone.cfg cfg_tool.bin eq_cfg_hw.bin  -key 564AC690X-69AE.key -format all
 :: -key 564AC690X-69AE.key
 :: -format all
 ::-reboot 2500

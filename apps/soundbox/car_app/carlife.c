@@ -38,6 +38,7 @@ void conn_carlife_handle()
 
 void carlife_conn_start(u8 *addr)
 {
+    printf("reconnect_mgr.type: %d\n", reconnect_mgr.type);
     if(reconnect_mgr.type != CONNECTIONMODE_Carlife)
     {
         printf("conn type is not carlife\n");

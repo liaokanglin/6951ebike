@@ -227,9 +227,9 @@ const int config_btctler_le_slave_conn_update_winden = 2500;//range:100 to 2500
  */
 /*-----------------------------------------------------------*/
 #if ((!TCFG_USER_BT_CLASSIC_ENABLE) && TCFG_USER_BLE_ENABLE)
-const int config_btctler_single_carrier_en = 1;   ////单模ble才设置
+const int config_btctler_single_carrier_en = 1;   // 单模BLE才设置（开启单载波测试使能）
 #else
-const int config_btctler_single_carrier_en = 0;
+const int config_btctler_single_carrier_en = 0;   // 非单模BLE时关闭单载波测试使能
 #endif
 
 
