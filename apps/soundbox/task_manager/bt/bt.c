@@ -860,6 +860,7 @@ static int bt_connction_status_event_handler(struct bt_event *bt)
         {
             //如果是hicar不继续进行下去
             if(reconnect_mgr.type == CONNECTIONMODE_Hicar){
+                printf("hicar mode, no need to reconnect\r\n");
                 return 1 ;
             }
             printf("my reconnect flag\r\n");
@@ -903,15 +904,18 @@ extern u8 rfcomm_connect_flag;
 void user_send_connect_diy_profile(u8 *addr)
 {
     if(rfcomm_connect_flag == 1 || reconnect_mgr.type == CONNECTIONMODE_Hicar){
+        printf("hicar mode, no need to connect\r\n");
         return;
     }
     printf("bt>>>>>>>>>>>>>>>>>> user_send_connect_diy_profile\n");
     u8 rfcomm_uuid[16] = {0};
         if(2 == gx_get_conn_remote_type())
         {
-            //IOS
+            /* iPhone 端 SDP 发布 FE；本地已注册的 FF 由 RFCOMM_IF_connect 定向映射。 */
             u8 iap_uuid[16] = {0x00, 0x00, 0x00, 0x00, 0xde, 0xca, 0xfa, 0xde, 0xde, 0xca, 0xde, 0xaf, 0xde, 0xca, 0xca, 0xfe};
             memcpy(rfcomm_uuid, iap_uuid, 16);
+            /* 打印实际查询的 iPhone iAP2 UUID，烧录后可确认末字节必须为 FE。 */
+            printf("[RFCOMM][CarPlay] query iPhone iAP2 UUID=FE\\r\\n");
             RFCOMM_IF_connect(addr, rfcomm_uuid, 16);
         }else if(1 == gx_get_conn_remote_type())
         {

@@ -1165,6 +1165,7 @@ int gx_uart_event_handler(struct notify_uart *nfuart)
     case MY_CARPLAY_RECONN:
 
         printf("--MY_CARPLAY_RECONN--\r\n");
+        reconnect_flag = 1;
         bt_hci_event_connection_timeout(NULL);
         my_cmd_err_send(MY_CMD_OK, 0, 0);
         break;

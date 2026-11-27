@@ -300,14 +300,27 @@ int RFCOMM_IF_connect(u8 *pstBtAddr, unsigned char *pbUUID, int dUUIDLen)
 {
 
     int i = 0;
+    /* CarPlay 的本地服务 UUID(FF) 与手机端待查询 UUID(FE) 是一对方向相反的标识。 */
+    u8 is_carplay_iap2_pair = 0;
     BTRfcRegUUID_t *sdp_index = NULL;
     for (i = 0; i < USER_SDP_SERVICE_MAX; i++) {
         if (user_sdp_ser[i].working_flag == 0xA5) {
             sdp_index = &user_sdp_ser[i].user_rfcomm_info;
             /* UUID 必须比较完整长度，避免末字节不同的服务被误判为同一服务。 */
-            if ((sdp_index->dUUIDLen == dUUIDLen) && !memcmp(sdp_index->pbUUID, pbUUID, dUUIDLen)) {
+            is_carplay_iap2_pair = (dUUIDLen == 16 &&
+                                    sdp_index->dUUIDLen == 16 &&
+                                    !memcmp(sdp_index->pbUUID, apple_iap2_uuid_128_1, 16) &&
+                                    !memcmp(pbUUID, apple_iap2_uuid_128_2, 16));
+            /* 除 CarPlay 定向配对外，所有协议仍只允许完整 UUID 一致。 */
+            if ((sdp_index->dUUIDLen == dUUIDLen) &&
+                (!memcmp(sdp_index->pbUUID, pbUUID, dUUIDLen) || is_carplay_iap2_pair)) {
 
                 printf("find the UUID to connect\n");
+                /* 打印本地服务和远端查询 UUID，便于确认 CarPlay 的双向 UUID 没有混用。 */
+                if (is_carplay_iap2_pair) {
+                    printf("[RFCOMM][CarPlay] iAP2 pair: local=FF, remote=FE, local_id=0x%02X\n",
+                           sdp_index->channel_id);
+                }
                 printf("[RFCOMM] request: local_id=0x%02X, mac=%02X:%02X:%02X:%02X:%02X:%02X, uuid=",
                        sdp_index->channel_id,
                        pstBtAddr[0], pstBtAddr[1], pstBtAddr[2],
